@@ -1,0 +1,382 @@
+// 面板：轮询、开始/停止、打点、下钻切换。
+
+  // ------------------------------------------------------------ 面板
+
+  function Panel(props) {
+    var t = props.t || function (key) { return key; };
+    var rpc = props.rpc || callRpc;
+
+    var [targets, setTargets] = useState([]);
+    var [targetsError, setTargetsError] = useState("");
+    var [pick, setPick] = useState("");
+    var [running, setRunning] = useState(false);
+    var [mode, setMode] = useState("live");
+    var [serverTarget, setServerTarget] = useState(null);
+    var [samples, setSamples] = useState([]);
+    var [marks, setMarks] = useState([]);
+    var [summary, setSummary] = useState(null);
+    var [error, setError] = useState("");
+    var [intervalMs, setIntervalMs] = useState(1000);
+    var [windowSec, setWindowSec] = useState(1800);
+    var [hover, setHover] = useState(null);
+    var [pickedSeq, setPickedSeq] = useState(null);
+    var [dim, setDim] = useState("category");
+    var [detail, setDetail] = useState(null);
+    var [detailLoading, setDetailLoading] = useState(false);
+    var [busy, setBusy] = useState(false);
+    var [markOpen, setMarkOpen] = useState(false);
+    var [markText, setMarkText] = useState("");
+    var [filter, setFilter] = useState(null);
+
+    var sinceRef = useRef(0);
+    var startedRef = useRef(null);
+
+    var options = useMemo(function () {
+      var list = [];
+      (targets || []).forEach(function (device) {
+        (device.apps || []).forEach(function (app) {
+          list.push({
+            key: device.udid + "|" + app.bundleId,
+            udid: device.udid,
+            bundleId: app.bundleId,
+            label: device.name + " · " + app.name,
+          });
+        });
+      });
+      return list;
+    }, [targets]);
+
+    var loadTargets = function () {
+      setTargetsError("");
+      return rpc("targets", {}).then(function (res) {
+        if (res && res.ok && res.value) {
+          var devices = res.value.devices || [];
+          setTargets(devices);
+          if (devices.length === 0) setTargetsError(t("panel.noTargets"));
+        } else {
+          setTargetsError((res && res.error && res.error.message) || t("panel.noTargets"));
+        }
+      });
+    };
+
+    useEffect(function () { void loadTargets(); }, []);
+
+    useEffect(function () {
+      if (!pick && options.length) setPick(options[0].key);
+    }, [options, pick]);
+
+    useEffect(function () {
+      if (!serverTarget || !options.length) return;
+      var key = serverTarget.udid + "|" + serverTarget.bundleId;
+      if (key !== pick && options.some(function (option) { return option.key === key; })) setPick(key);
+    }, [serverTarget && serverTarget.pid, options, pick]);
+
+    useEffect(function () {
+      var alive = true;
+      var timer = null;
+
+      function pull() {
+        rpc("state", { since: sinceRef.current, limit: MAX_POINTS }).then(function (res) {
+          if (!alive) return;
+          if (res && res.ok && res.value) {
+            var value = res.value;
+            setRunning(!!value.running);
+            setMode(value.mode || "live");
+            setServerTarget(value.target || null);
+            setError(value.error || "");
+            setMarks(value.marks || []);
+            setSummary(value.summary || null);
+            if (value.intervalMs) setIntervalMs(value.intervalMs);
+
+            if (startedRef.current === null) {
+              startedRef.current = value.startedAt || 0;
+            } else if ((value.startedAt || 0) !== startedRef.current) {
+              startedRef.current = value.startedAt || 0;
+              sinceRef.current = 0;
+              setSamples([]);
+              setPickedSeq(null);
+              setHover(null);
+              setFilter(null);
+              // 换了一轮采样：本地样本清空，下一拍从 0 重新拉；这里必须先续上下一次轮询。
+              if (alive) timer = setTimeout(pull, 1000);
+              return;
+            }
+
+            if (Array.isArray(value.samples) && value.samples.length) {
+              sinceRef.current = value.seq;
+              setSamples(function (prev) {
+                var map = new Map();
+                for (var i = 0; i < prev.length; i++) map.set(prev[i].seq, prev[i]);
+                for (var j = 0; j < value.samples.length; j++) map.set(value.samples[j].seq, value.samples[j]);
+                var merged = Array.from(map.values()).sort(function (a, b) { return a.seq - b.seq; });
+                return merged.length > MAX_POINTS ? merged.slice(merged.length - MAX_POINTS) : merged;
+              });
+            } else if (typeof value.seq === "number" && value.seq > sinceRef.current) {
+              sinceRef.current = value.seq;
+            }
+          }
+          if (alive) timer = setTimeout(pull, 1000);
+        });
+      }
+
+      pull();
+      return function () {
+        alive = false;
+        if (timer) clearTimeout(timer);
+      };
+    }, []);
+
+    useEffect(function () {
+      if (dim === "category") return undefined;
+      var alive = true;
+      var timer = null;
+      function load() {
+        setDetailLoading(true);
+        rpc("detail", {}).then(function (res) {
+          if (!alive) return;
+          setDetailLoading(false);
+          if (res && res.ok && res.value) setDetail(res.value);
+          else if (res && res.error) setDetail({ error: res.error.message });
+          timer = setTimeout(load, 5000);
+        });
+      }
+      load();
+      return function () {
+        alive = false;
+        if (timer) clearTimeout(timer);
+      };
+    }, [dim]);
+
+    var visible = useMemo(function () {
+      if (!samples.length) return [];
+      var last = samples[samples.length - 1].t;
+      var from = last - windowSec * 1000;
+      return samples.filter(function (sample) { return sample.t >= from; });
+    }, [samples, windowSec]);
+
+    var windowStats = useMemo(function () {
+      if (!visible.length) return null;
+      var totals = visible.map(function (sample) { return sample.total; });
+      var first = totals[0];
+      var last = totals[totals.length - 1];
+      return {
+        current: last,
+        peak: Math.max.apply(null, totals),
+        delta: last - first,
+        count: visible.length,
+      };
+    }, [visible]);
+
+    var pickedSample = useMemo(function () {
+      if (pickedSeq === null) return visible.length ? visible[visible.length - 1] : null;
+      for (var i = 0; i < samples.length; i++) {
+        if (samples[i].seq === pickedSeq) return samples[i];
+      }
+      return visible.length ? visible[visible.length - 1] : null;
+    }, [samples, visible, pickedSeq]);
+
+    var selected = options.filter(function (option) { return option.key === pick; })[0] || null;
+
+    function start() {
+      if (!selected) { setError(t("panel.needTarget")); return; }
+      setBusy(true);
+      rpc("start", { udid: selected.udid, bundleId: selected.bundleId, intervalMs: intervalMs }).then(function (res) {
+        setBusy(false);
+        if (res && res.ok) {
+          sinceRef.current = 0;
+          startedRef.current = null;
+          setSamples([]);
+          setPickedSeq(null);
+          setFilter(null);
+          setError("");
+        } else {
+          setError((res && res.error && res.error.message) || t("panel.error"));
+        }
+      });
+    }
+
+    function stop() {
+      setBusy(true);
+      rpc("stop", {}).then(function () { setBusy(false); });
+    }
+
+    function saveMark() {
+      var label = markText.trim();
+      if (!label) { setMarkOpen(false); return; }
+      rpc("mark", { label: label }).then(function () { setMarkOpen(false); setMarkText(""); });
+    }
+
+    var dimRows = [];
+    var dimTotal = 1;
+    if (dim === "category" && pickedSample) {
+      dimRows = (pickedSample.categories || []).slice(0, 14);
+      dimTotal = pickedSample.total;
+    } else if (detail && !detail.error) {
+      dimRows = (dim === "image" ? detail.images : detail.tags) || [];
+      dimTotal = (dim === "image" ? detail.imagesTotal : detail.tagsTotal) || detail.total || 1;
+    }
+
+    var statusText = running
+      ? t("panel.status.running") + " · " + shortTime(Math.round(intervalMs / 1000)) + (serverTarget ? " · " + serverTarget.appName : "")
+      : (mode === "trace" && samples.length ? t("panel.status.trace") : t("panel.status.idle"));
+
+    var buttonStyle = function (primary, disabled) {
+      return {
+        appearance: "none", border: "1px solid " + (primary ? ACCENT : BORDER),
+        background: primary ? ACCENT : BG1,
+        color: primary ? "#fff" : FG, borderRadius: 7,
+        padding: "4px 10px", fontSize: 11, fontWeight: 550,
+        cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1,
+      };
+    };
+
+    return e("div", { style: { display: "flex", flexDirection: "column", gap: 8, padding: "2px 2px 12px", color: FG, minWidth: 0, width: "100%", boxSizing: "border-box", overflowX: "hidden" } },
+
+      e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+        e("span", { style: { width: 6, height: 6, borderRadius: 99, background: running ? "#1f9d63" : FG3 } }),
+        e("span", { style: { fontSize: 11, color: FG2 } }, statusText),
+        e("span", { style: { flex: 1 } })
+      ),
+
+      e("div", { style: { display: "flex", gap: 4 } },
+        e("select", {
+          value: pick,
+          onChange: function (ev) { setPick(ev.target.value); },
+          style: {
+            flex: 1, minWidth: 0, fontSize: 11, padding: "4px 6px",
+            borderRadius: 7, border: "1px solid " + BORDER, background: BG1, color: FG
+          }
+        },
+          options.length === 0
+            ? e("option", { value: "" }, t("panel.noTargets"))
+            : options.map(function (option) { return e("option", { key: option.key, value: option.key }, option.label); })
+        ),
+        e("button", { onClick: function () { void loadTargets(); }, style: buttonStyle(false, false), title: t("panel.refresh") }, "↻")
+      ),
+
+      targetsError ? e("div", { style: { fontSize: 10, color: FG3, lineHeight: 1.5 } }, targetsError) : null,
+
+      e("div", { style: { display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" } },
+        running
+          ? e("button", { onClick: stop, disabled: busy, style: buttonStyle(true, busy) }, t("panel.stop"))
+          : e("button", { onClick: start, disabled: busy, style: buttonStyle(true, busy) }, t("panel.start")),
+        e("select", {
+          value: String(intervalMs), onChange: function (ev) { setIntervalMs(Number(ev.target.value)); },
+          style: { fontSize: 10, padding: "3px 4px", borderRadius: 6, border: "1px solid " + BORDER, background: BG1, color: FG2 }
+        }, INTERVALS.map(function (value) {
+          return e("option", { key: value, value: String(value) }, value + "ms");
+        })),
+        e("select", {
+          value: String(windowSec), onChange: function (ev) { setWindowSec(Number(ev.target.value)); },
+          title: t("panel.window"),
+          style: { fontSize: 10, padding: "3px 4px", borderRadius: 6, border: "1px solid " + BORDER, background: BG1, color: FG2 }
+        }, WINDOWS.map(function (value) {
+          return e("option", { key: value, value: String(value) }, shortTime(value));
+        })),
+        e("span", { style: { flex: 1 } }),
+        markOpen
+          ? e("input", {
+            value: markText, autoFocus: true,
+            placeholder: t("panel.markPlaceholder"),
+            onChange: function (ev) { setMarkText(ev.target.value); },
+            onKeyDown: function (ev) {
+              if (ev.key === "Enter") saveMark();
+              if (ev.key === "Escape") setMarkOpen(false);
+            },
+            onBlur: saveMark,
+            style: { width: 120, fontSize: 10, padding: "3px 6px", borderRadius: 6, border: "1px solid " + BORDER, background: BG1, color: FG }
+          })
+          : e("button", { onClick: function () { setMarkOpen(true); }, style: buttonStyle(false, false) }, t("panel.mark"))
+      ),
+
+      error ? e("div", { style: { fontSize: 10, color: DANGER, lineHeight: 1.4 } }, t("panel.error") + "：" + error) : null,
+
+      samples.length === 0
+        ? e("div", { style: { border: "1px dashed " + BORDER, borderRadius: 10, padding: "18px 14px", textAlign: "center" } },
+          e("div", { style: { fontSize: 12, fontWeight: 600, marginBottom: 4 } }, t("panel.empty.title")),
+          e("div", { style: { fontSize: 10, color: FG2, lineHeight: 1.5 } }, t("panel.empty.body")))
+        : e("div", null,
+          e(Timeline, {
+            samples: visible, marks: marks, filter: filter, hover: hover,
+            onHover: setHover, pickedSeq: pickedSeq, onPick: setPickedSeq, t: t
+          }),
+          filter ? e("div", { style: { display: "flex", alignItems: "center", gap: 6, marginTop: 4 } },
+            e("span", { style: { fontSize: 10, color: FG2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t("panel.filterOn") + "：" + filter),
+            e("button", { onClick: function () { setFilter(null); }, style: { appearance: "none", border: 0, background: "transparent", color: ACCENT, fontSize: 10, cursor: "pointer", padding: 0 } }, t("panel.clear"))
+          ) : null
+        ),
+
+      e("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 4 } },
+        statCell(t("panel.current"), windowStats ? fmtMB(windowStats.current) : "—", FG),
+        statCell(t("panel.peak"), windowStats ? fmtMB(windowStats.peak) : "—", FG),
+        statCell(t("panel.delta"), windowStats ? (windowStats.delta >= 0 ? "+" : "") + fmtMB(windowStats.delta) : "—", windowStats && windowStats.delta > 0 ? WARN : "#1f9d63"),
+        statCell(t("panel.samples"), windowStats ? String(windowStats.count) : "0", FG)
+      ),
+
+      e("div", { style: { display: "flex", alignItems: "center", gap: 2, borderBottom: "1px solid " + BORDER } },
+        [["category", t("panel.category")], ["image", t("panel.image")], ["tag", t("panel.tag")]].map(function (pair) {
+          var key = pair[0];
+          var active = dim === key;
+          return e("button", {
+            key: key, onClick: function () { setDim(key); },
+            style: {
+              appearance: "none", border: 0, background: "transparent",
+              padding: "5px 8px", fontSize: 11, cursor: "pointer",
+              color: active ? FG : FG3, fontWeight: active ? 650 : 450,
+              borderBottom: "2px solid " + (active ? ACCENT : "transparent"),
+              marginBottom: -1,
+            }
+          }, pair[1]);
+        }),
+        e("span", { style: { flex: 1 } }),
+        pickedSeq !== null && dim === "category"
+          ? e("button", { onClick: function () { setPickedSeq(null); }, style: { appearance: "none", border: 0, background: "transparent", color: FG3, fontSize: 9, cursor: "pointer" } }, t("panel.clear"))
+          : null
+      ),
+
+      dim !== "category"
+        ? e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.4 } },
+          detailLoading
+            ? t("panel.loading")
+            : detail && detail.at
+              ? (dim === "image"
+                ? t("panel.imageNote") + " · " + fmtMB(detail.imagesTotal || 0)
+                : t("panel.detailNow"))
+              : t("panel.noDetail"))
+        : null,
+
+      detail && detail.error
+        ? e("div", { style: { fontSize: 10, color: DANGER } }, detail.error)
+        : e(Rows, {
+          rows: dimRows.map(function (row) { return { name: row.name, bytes: row.bytes }; }),
+          total: dimTotal,
+          active: dim === "category" ? filter : null,
+          clickable: dim === "category",
+          onPick: function (name) { setFilter(name); },
+          empty: dim === "category" ? t("panel.empty.body") : t("panel.noDetail")
+        }),
+
+      marks.length
+        ? e("div", { style: { display: "flex", flexWrap: "wrap", gap: 4 } },
+          marks.slice(-6).map(function (mark, index) {
+            return e("span", {
+              key: index, title: clock(mark.t),
+              style: { fontSize: 9, color: FG2, background: BG2, borderRadius: 99, padding: "2px 7px", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }
+            }, clock(mark.t) + " " + mark.label);
+          }))
+        : null,
+
+      e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.5 } }, t("panel.footer.sim")),
+
+      hover === null && samples.length > 0
+        ? e("div", { style: { fontSize: 9, color: FG3 } }, t("panel.hover.none"))
+        : null
+    );
+  }
+
+  function statCell(label, value, color) {
+    return e("div", { style: { background: BG2, borderRadius: 8, padding: "5px 7px", minWidth: 0, boxSizing: "border-box", overflow: "hidden" } },
+      e("div", { style: { fontSize: 9, color: FG3, marginBottom: 1, whiteSpace: "nowrap" } }, label),
+      e("div", { style: { fontSize: 12, fontWeight: 650, fontFamily: MONO, color: color || FG, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, value)
+    );
+  }
