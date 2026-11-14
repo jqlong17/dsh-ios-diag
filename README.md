@@ -54,12 +54,20 @@ footprint -v -j <tmp> <pid>   # ~90ms，5000+ region 的 tag / 镜像 / 字节
 
 ## 结构
 
-| 文件 | 作用 |
+| 位置 | 作用 |
 | --- | --- |
-| `core.js` | 采样、目标发现、明细聚合、工具定义（两个入口共用） |
+| `core/util.js` | 无状态工具：exec、字节换算、region 拆分 |
+| `core/trace.js` | xctrace：真机设备、sysmon 解析、录制编排 |
+| `core/targets.js` | 模拟器列表 / 运行中 App / 启动 App |
+| `core/sampler.js` | 采样状态机（唯一有状态的东西） |
+| `core/tools.js` | 工具表（DSH 与 MCP 共用） |
+| `core.js` | 上面 5 个模块的 re-export |
 | `index.js` | DSH 插件：HTTP RPC + 原生工具 |
-| `client.js` | 右侧栏面板（classic script，`__ModuleLoader__`） |
+| `client/` | 面板源码（6 段，`npm run build:client` 拼成 `client.js`） |
+| `client.js` | **生成物**，不要直接改 |
 | `bin/mcp.mjs` | MCP server（newline-delimited JSON-RPC，无 SDK 依赖） |
+
+改面板的流程：改 `client/*.js` → `npm run build:client` → `npm test`。
 
 ## 边界
 
