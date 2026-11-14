@@ -60,3 +60,23 @@ test('结论副标题：连上的真机写「已连接」，不再误写跳过',
   assert.ok(result.subline.includes('真机：已连接'))
   assert.ok(result.subline.includes('内存：跳过'))
 })
+
+test('总体措辞：只有代码坏时说「运行时正常」', () => {
+  const result = aggregateDiagnose({
+    check: { verdict: 'pass', items: [] },
+    health: { oversize: [{ path: '/x/a', lines: 600 }], lint: { total: 5, byRule: [{ rule: 'function_body_length', count: 5, severity: 'Error' }] } },
+    memory: { stats: { samples: 20, spanSec: 12, marks: 0 }, level: 'ok', headline: '平稳' },
+  })
+  assert.equal(result.level, 'bad')
+  assert.ok(result.headline.includes('运行时正常'))
+})
+
+test('内存：没打点的短窗口写「静置基线」', () => {
+  const result = aggregateDiagnose({
+    check: { verdict: 'pass', items: [] },
+    health: null,
+    memory: { stats: { samples: 20, spanSec: 12, marks: 0 }, level: 'ok', headline: '静置平稳，没有泄漏迹象' },
+  })
+  const moduleA = result.modules.find((module) => module.id === 'A')
+  assert.ok(moduleA.headline.includes('静置基线'))
+})

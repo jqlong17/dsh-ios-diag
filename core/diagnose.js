@@ -39,7 +39,17 @@ export function aggregateDiagnose({ check, health, memory, device = null, includ
   }
 
   if (memory && memory.stats) {
-    modules.push({ id: 'A', name: '内存', level: memory.level, skipped: false, headline: memory.headline, ruleId: memory.ruleId, reasons: memory.reasons })
+    // 没打点、窗口又短：这是静置基线，不是交互场景，措辞要说清楚。
+    const baselineOnly = (memory.stats.marks || 0) === 0 && (memory.stats.spanSec || 0) < 30 && memory.level === 'ok'
+    modules.push({
+      id: 'A',
+      name: '内存',
+      level: memory.level,
+      skipped: false,
+      headline: baselineOnly ? '静置基线平稳（未做交互场景）' : memory.headline,
+      ruleId: memory.ruleId,
+      reasons: memory.reasons,
+    })
   } else {
     modules.push({ id: 'A', name: '内存', level: null, skipped: true, headline: '本次没采样（内存要配合场景才有意义）', ruleId: null })
   }
@@ -60,9 +70,21 @@ export function aggregateDiagnose({ check, health, memory, device = null, includ
   const levels = modules.map((module) => module.level).filter(Boolean)
   const worst = levels.includes('bad') ? 'bad' : levels.includes('watch') ? 'watch' : levels.length ? 'ok' : null
 
+  const runtimeLevels = modules
+    .filter((module) => module.id === 'D' || module.id === 'A')
+    .map((module) => module.level)
+    .filter(Boolean)
+  const runtimeBad = runtimeLevels.includes('bad')
+  const codeBad = modules.some((module) => module.id === 'G' && module.level === 'bad')
+
+  let headline = '这次没发现问题'
+  if (runtimeBad) headline = '有需要处理的问题'
+  else if (codeBad) headline = '运行时正常，代码结构需要治理'
+  else if (worst === 'watch') headline = '能用，但有可改进项'
+
   return {
     level: worst,
-    headline: worst === 'bad' ? '有需要处理的问题' : worst === 'watch' ? '能用，但有可改进项' : '这次没发现问题',
+    headline,
     subline: modules.map((module) => `${module.name}：${module.skipped ? '跳过' : (LEVEL_LABEL[module.level] || '已连接')}`).join(' · '),
     modules,
     markCount,
