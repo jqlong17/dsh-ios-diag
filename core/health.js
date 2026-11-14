@@ -54,7 +54,34 @@ export function aggregateLint(json, limit = 20) {
   }
 }
 
-export function renderHealthReport({ project, target, files, oversize, lint, generatedAt }) {
+/// xccov 的 report JSON：`targets[].lineCoverage` 是 0–1 的小数。
+/// 只取 target 级；文件级明细留给目标仓库自己的覆盖率工具。
+export function parseXccovCoverage(json) {
+  let data
+  try {
+    data = JSON.parse(String(json || ''))
+  } catch {
+    return null
+  }
+  const targets = (data && Array.isArray(data.targets) ? data.targets : [])
+    .filter((target) => target && typeof target.lineCoverage === 'number')
+    .map((target) => ({
+      name: target.name || '',
+      lineCoverage: target.lineCoverage,
+      percent: Math.round(target.lineCoverage * 1000) / 10,
+    }))
+  if (!targets.length) return null
+  const overall = Math.round(targets.reduce((sum, target) => sum + target.lineCoverage, 0) / targets.length * 1000) / 10
+  return { targets, overall }
+}
+
+/// 目标仓库自带脚本的输出：只取退出码与最后两行（通常是结论）。
+export function summarizeArchitecture(exitCode, output) {
+  const lines = String(output || '').trim().split('\n').filter(Boolean)
+  return { ok: exitCode === 0, summary: lines.slice(-2).join(' ') }
+}
+
+export function renderHealthReport({ project, target, files, oversize, lint, coverage, architecture, minCoverage, generatedAt }) {
   const totalLines = files.reduce((sum, file) => sum + file.lines, 0)
   const lines = []
   lines.push(`# 代码健康扫描 · ${project}`)
@@ -93,9 +120,28 @@ export function renderHealthReport({ project, target, files, oversize, lint, gen
     for (const entry of lint.byRule) lines.push(`| ${entry.rule} | ${entry.count} | ${entry.severity} |`)
   }
   lines.push('')
+  if (coverage) {
+    lines.push('## 覆盖率（xccov）')
+    lines.push('')
+    lines.push('| Target | 行覆盖率 |')
+    lines.push('| --- | --- |')
+    for (const entry of coverage.targets) lines.push(`| ${entry.name} | ${entry.percent}% |`)
+    lines.push('')
+    const floor = minCoverage === undefined ? 85 : minCoverage
+    lines.push(`- 平均 ${coverage.overall}%，门槛 ${floor}%：${coverage.overall >= floor ? '达标' : '**未达标**'}`)
+    lines.push('')
+  }
+  if (architecture) {
+    lines.push('## 目标仓库的架构检查')
+    lines.push('')
+    lines.push(`- 结果：${architecture.ok ? '通过' : '**有违规**'}`)
+    lines.push(`- 输出：${architecture.summary || '（无输出）'}`)
+    lines.push('')
+  }
   lines.push('## 结论')
   lines.push('')
-  if (oversize.length || lint.byRule.some((entry) => entry.severity === 'Error')) {
+  const coverageBad = coverage && coverage.overall < (minCoverage === undefined ? 85 : minCoverage)
+  if (oversize.length || lint.byRule.some((entry) => entry.severity === 'Error') || coverageBad || (architecture && !architecture.ok)) {
     lines.push('- 有超限文件或 Error 级 lint：先拆文件，再看规则明细。')
   } else {
     lines.push('- 结构阈值内；lint 没有 Error。')

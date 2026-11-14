@@ -50,3 +50,28 @@ test('renderHealthReport：带目标、超限清单与规则表', () => {
   assert.ok(md.includes('big.swift'))
   assert.ok(md.includes('file_length'))
 })
+
+test('parseXccovCoverage：逐 target 覆盖率与平均', async () => {
+  const { parseXccovCoverage } = await import('../core/health.js')
+  const parsed = parseXccovCoverage(JSON.stringify({ targets: [
+    { name: 'DSHKit', lineCoverage: 0.9 },
+    { name: 'App', lineCoverage: 0.7 },
+  ] }))
+  assert.equal(parsed.targets.length, 2)
+  assert.equal(parsed.targets[0].percent, 90)
+  assert.equal(parsed.overall, 80)
+})
+
+test('parseXccovCoverage：坏 JSON 返回 null', async () => {
+  const { parseXccovCoverage } = await import('../core/health.js')
+  assert.equal(parseXccovCoverage('nope'), null)
+})
+
+test('summarizeArchitecture：退出码与最后一行', async () => {
+  const { summarizeArchitecture } = await import('../core/health.js')
+  const bad = summarizeArchitecture(1, '违规: 2 处\n→ 先拆文件\n')
+  assert.equal(bad.ok, false)
+  assert.match(bad.summary, /先拆文件/)
+  const good = summarizeArchitecture(0, '✅ 架构检查通过\n')
+  assert.equal(good.ok, true)
+})
