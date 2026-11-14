@@ -18,6 +18,10 @@
     var pf = props.preflight;
     return e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
 
+      props.reportError
+        ? e("div", { style: { fontSize: 11, color: DANGER, lineHeight: 1.5, background: BG2, border: "1px solid " + BORDER, borderRadius: 8, padding: "7px 10px" } }, props.reportError)
+        : null,
+
       props.assessment
         ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "14px 16px",
             borderLeft: "3px solid " + LEVEL_COLOR[props.assessment.level],
@@ -236,6 +240,7 @@
     var [health, setHealth] = useState(null);
     var [healthBusy, setHealthBusy] = useState(false);
     var [version, setVersion] = useState("");
+    var [reportError, setReportError] = useState("");
 
     var sinceRef = useRef(0);
     var startedRef = useRef(null);
@@ -307,14 +312,22 @@
 
     function makeReport(run) {
       setRunBusy(true);
+      setReportError("");
+      // 不传 project/title：后端会从 run 的 meta.json 反推，比前端猜更准。
       var project = serverTarget && serverTarget.bundleId
         ? serverTarget.bundleId.split(".").pop()
-        : "unknown";
-      rpc("report", { runId: run.runId, project: project, title: "采集 " + run.runId }).then(function (res) {
+        : undefined;
+      rpc("report", { runId: run.runId, project: project }).then(function (res) {
         setRunBusy(false);
-        if (!res || !res.ok || !res.value) return;
+        if (!res || !res.ok || !res.value) {
+          setReportError((res && res.error && res.error.message) || "生成报告失败");
+          return;
+        }
         setReportPath(res.value.path || "");
-        if (!res.value.handoff) return;
+        if (!res.value.handoff) {
+          setReportError("报告已生成，但没有交接文本");
+          return;
+        }
         var text = res.value.handoff;
         setHandoff({ path: res.value.path || "", text: text, copied: false });
         copyText(text).then(function (ok) {
@@ -740,6 +753,7 @@
           clock: shortClock,
           onReport: makeReport,
           handoff: handoff,
+          reportError: reportError,
           onCopy: function () { if (handoff) copyText(handoff.text).then(function (ok) { setHandoff({ path: handoff.path, text: handoff.text, copied: ok }); }); },
         })
         : null,
@@ -755,6 +769,7 @@
           clock: shortClock,
           onReport: makeReport,
           onExport: exportRun,
+          reportError: reportError,
           busy: runBusy,
           reportPath: reportPath,
         })
