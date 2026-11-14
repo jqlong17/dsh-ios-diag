@@ -156,7 +156,7 @@ async function dispatch(op, payload) {
           const firstApp = (listed.devices || []).flatMap((device) => (device.apps || []).map((app) => ({ ...app, udid: device.udid })))[0]
           if (firstApp) {
             const sampleSeconds = Math.min(30, Math.max(8, Number(payload.sampleSeconds) || 12))
-            await sampler.start({ udid: firstApp.udid, bundleId: firstApp.bundleId, intervalMs: 500 })
+            await sampler.start({ udid: firstApp.udid, bundleId: firstApp.bundleId, pid: firstApp.pid, appName: firstApp.name, intervalMs: 500 })
             await new Promise((resolve) => setTimeout(resolve, sampleSeconds * 1000))
             sampler.stop()
             memory = assessMemory({ samples: sampler.session.samples, marks: sampler.session.marks })
@@ -168,7 +168,8 @@ async function dispatch(op, payload) {
       const result = aggregateDiagnose({ check, health, memory, device: includeDevice ? device : null, includeDevice })
       const now = new Date()
       const pad = (value) => String(value).padStart(2, '0')
-      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
+      // 精确到秒：同一分钟点两次也不会覆盖上一条。
+      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
       const when = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
       const dir = join(ROOT, 'docs', 'measurements', project)
       await mkdir(dir, { recursive: true })
