@@ -34,8 +34,10 @@ export async function generateReport({ dir, project, title, slug = 'run', device
     .map((event) => ({ t: Date.parse(event.ts) || 0, total: event.attrs.totalMB * 1048576 }))
   const marks = events.filter((event) => event.type === 'mark')
   const assessment = assessMemory({ samples, marks })
+  // 旧版面板会硬传「采集 <runId>」当标题；这种自动标题等于没写，换成能读的。
+  const autoTitle = !title || /^采集\s+\d{6,}-\d{4}$/.test(String(title).trim())
   const markdown = renderReport({
-    title: title || `${meta.appName || '内存采样'} · ${runId}`,
+    title: autoTitle ? `${meta.appName || '内存采样'} · ${runId}` : title,
     project,
     runId,
     runDir: dir,
