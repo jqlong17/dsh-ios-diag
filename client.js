@@ -115,6 +115,8 @@ window.__ModuleLoader__.load({
           "panel.diagnose.run": "一键诊断（体检 + 代码 + 内存 + 真机）",
           "panel.diagnose.running": "诊断中…",
           "panel.diagnose.skip": "跳过",
+          "panel.diagnose.target": "项目路径（代码健康扫描用）",
+          "panel.diagnose.includeDevice": "同时跑真机",
           "panel.reportNowEmpty": "先采样，再生成报告",
           "panel.assess.next": "下一步",
           "panel.handoff.copied": "已复制提示词：粘贴给 Agent，它会读上面的报告接着分析",
@@ -205,6 +207,8 @@ window.__ModuleLoader__.load({
           "panel.diagnose.run": "Run full diagnosis",
           "panel.diagnose.running": "diagnosing…",
           "panel.diagnose.skip": "skipped",
+          "panel.diagnose.target": "Project path (for code health)",
+          "panel.diagnose.includeDevice": "Include physical device",
           "panel.reportNowEmpty": "Sample first",
           "panel.assess.next": "下一步",
           "panel.assess.next": "Next",
@@ -635,6 +639,17 @@ window.__ModuleLoader__.load({
                 : null)
             : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, border: "1px dashed " + BORDER, borderRadius: 12, padding: "12px 14px" } }, t("panel.overview.empty")),
 
+          e("input", {
+            value: props.diagTarget,
+            onChange: function (ev) { props.onTargetChange(ev.target.value); },
+            placeholder: t("panel.diagnose.target"),
+            style: { width: "100%", boxSizing: "border-box", fontSize: 11, padding: "6px 9px", borderRadius: 8, border: "1px solid " + BORDER, background: BG1, color: FG }
+          }),
+
+          e("label", { style: { display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: FG2, cursor: "pointer" } },
+            e("input", { type: "checkbox", checked: props.includeDevice, onChange: function () { props.onToggleDevice(!props.includeDevice); } }),
+            t("panel.diagnose.includeDevice")),
+
           e("div", { style: { display: "flex", gap: 6 } },
             e("button", {
               onClick: props.onDiagnose,
@@ -845,6 +860,8 @@ window.__ModuleLoader__.load({
         var [diagnose, setDiagnose] = useState(null);
         var [diagnoseBusy, setDiagnoseBusy] = useState(false);
         var [diagnoses, setDiagnoses] = useState([]);
+        var [diagTarget, setDiagTarget] = useState("");
+        var [includeDevice, setIncludeDevice] = useState(false);
 
         var sinceRef = useRef(0);
         var startedRef = useRef(null);
@@ -898,7 +915,17 @@ window.__ModuleLoader__.load({
 
         useEffect(function () {
           rpc("info", {}).then(function (res) {
-            if (res && res.ok && res.value) setVersion(res.value.version || "");
+            if (res && res.ok && res.value) {
+              setVersion(res.value.version || "");
+              setDiagTarget(function (prev) {
+                if (prev) return prev;
+                try {
+                  return localStorage.getItem("diag.target") || res.value.cwd || "";
+                } catch (e) {
+                  return res.value.cwd || "";
+                }
+              });
+            }
           });
         }, []);
 
@@ -931,7 +958,7 @@ window.__ModuleLoader__.load({
           setDiagnoseBusy(true);
           setReportError("");
           var bundleId = serverTarget ? serverTarget.bundleId : undefined;
-          rpc("diagnose", { bundleId: bundleId }).then(function (res) {
+          rpc("diagnose", { bundleId: bundleId, target: diagTarget, includeDevice: includeDevice }).then(function (res) {
             setDiagnoseBusy(false);
             if (!res || !res.ok || !res.value) {
               setReportError((res && res.error && res.error.message) || "诊断失败");
@@ -1435,6 +1462,13 @@ window.__ModuleLoader__.load({
               diagnose: diagnose,
               diagnoseBusy: diagnoseBusy,
               onDiagnose: runDiagnose,
+              diagTarget: diagTarget,
+              includeDevice: includeDevice,
+              onTargetChange: function (value) {
+                setDiagTarget(value);
+                try { localStorage.setItem("diag.target", value); } catch (e) { /* 无痕模式 */ }
+              },
+              onToggleDevice: function (value) { setIncludeDevice(value); },
               diagnoses: diagnoses,
               onCopyRecord: copyRecord,
               busy: runBusy,

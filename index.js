@@ -95,7 +95,7 @@ async function dispatch(op, payload) {
     case 'runs':
       return { runs: await listRuns({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
     case 'info':
-      return { version: VERSION, startedAt: STARTED_AT }
+      return { version: VERSION, startedAt: STARTED_AT, cwd: process.cwd() }
     case 'health': {
       const target = String(payload.target || process.cwd())
       const project = String(payload.project || target.split('/').filter(Boolean).pop() || 'repo')
@@ -123,6 +123,7 @@ async function dispatch(op, payload) {
       } catch (error) {
         health = null
       }
+      const includeDevice = payload.includeDevice !== false
       let device = null
       try {
         const devices = await physicalDevices()
@@ -133,7 +134,7 @@ async function dispatch(op, payload) {
       const memory = sampler.session.samples.length
         ? assessMemory({ samples: sampler.session.samples, marks: sampler.session.marks })
         : null
-      const result = aggregateDiagnose({ check, health, memory, device })
+      const result = aggregateDiagnose({ check, health, memory, device: includeDevice ? device : null, includeDevice })
       const now = new Date()
       const pad = (value) => String(value).padStart(2, '0')
       const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`

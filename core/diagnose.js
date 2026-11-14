@@ -8,7 +8,7 @@ import { assessHealth } from './health.js'
 const LEVEL_RANK = { ok: 0, watch: 1, bad: 2 }
 const LEVEL_LABEL = { ok: '正常', watch: '留意', bad: '需要处理' }
 
-export function aggregateDiagnose({ check, health, memory, device = null, markCount = 0 }) {
+export function aggregateDiagnose({ check, health, memory, device = null, includeDevice = true, markCount = 0 }) {
   const modules = []
 
   if (check) {
@@ -37,9 +37,11 @@ export function aggregateDiagnose({ check, health, memory, device = null, markCo
     id: 'F',
     name: '真机',
     level: null,
-    headline: device
-      ? `已连接 ${device.name}（真机录制可在「记录」里单独跑）`
-      : '未连接真机，已跳过（插上后补跑）',
+    headline: !includeDevice
+      ? '未勾选真机（这次只跑模拟机）'
+      : device
+        ? `已连接 ${device.name}（真机录制可在「记录」里单独跑）`
+        : '勾选了真机，但没检测到在线设备（插上后补跑）',
     ruleId: null,
   })
 
