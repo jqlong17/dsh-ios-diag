@@ -22,3 +22,10 @@ test('generateReport：空 run 报错', async () => {
   const empty = await mkdtemp(join(tmpdir(), 'dsh-empty-'))
   await assert.rejects(() => generateReport({ dir: empty, project: 'demo' }), /没有事件|readFile|ENOENT/)
 })
+
+test('generateReport：outFile 是精确路径', async () => {
+  const outDir = await mkdtemp(join(tmpdir(), 'dsh-report2-'))
+  const exact = join(outDir, 'exact.md')
+  const result = await generateReport({ dir: runDir, project: 'demo', outFile: exact })
+  assert.equal(result.path, exact)
+})

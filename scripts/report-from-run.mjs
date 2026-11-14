@@ -7,6 +7,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseJsonl } from '../core/query.js'
 import { generateReport } from '../core/report-run.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -45,6 +46,6 @@ if (!events.length) {
   process.exit(1)
 }
 
-const result = await generateReport({ dir: runDir, project, title, slug, device, outDir: outArg ? resolve(outArg) : undefined })
+const result = await generateReport({ dir: runDir, project, title, slug, device, outFile: outArg ? resolve(outArg) : undefined })
 const out = result.path
 console.log(out)

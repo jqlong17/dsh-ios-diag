@@ -7,7 +7,7 @@ import { summarizeRun, deriveFindings, renderReport } from './report.js'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
 
-export async function generateReport({ dir, project = 'unknown', title, slug = 'run', device, time, outDir }) {
+export async function generateReport({ dir, project = 'unknown', title, slug = 'run', device, time, outDir, outFile }) {
   const events = parseJsonl(await readFile(join(dir, 'events.jsonl'), 'utf8'))
   const links = parseJsonl(await readFile(join(dir, 'links.jsonl'), 'utf8'))
   if (!events.length) throw new Error('run 里没有事件')
@@ -30,7 +30,8 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
   const pad = (value) => String(value).padStart(2, '0')
   const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
   const baseDir = outDir || join(ROOT, 'docs', 'measurements', project)
-  const path = join(baseDir, `${stamp}-${slug}.md`)
+  // outFile 是精确路径（CLI 的 --out）；outDir 是目录（面板用）。
+  const path = outFile || join(baseDir, `${stamp}-${slug}.md`)
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, markdown)
   return { ok: true, path, runId, events: events.length, links: links.length }
