@@ -4,7 +4,7 @@ import { TOOL_SPECS, toolInputSchema } from '../core.js'
 
 test('工具表：8 个工具，名字唯一', () => {
   const names = TOOL_SPECS.map((spec) => spec.name)
-  assert.equal(names.length, 13)
+  assert.equal(names.length, 14)
   assert.equal(new Set(names).size, names.length)
 })
 

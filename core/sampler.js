@@ -16,6 +16,7 @@ import { recordAllocations } from './allocations.js'
 import { queryLogs, sampleHangs } from './logs.js'
 import { exportRun } from './events.js'
 import { queryRun } from './query.js'
+import { analyzePcap } from './net.js'
 
 export class MemorySampler {
   constructor() {
@@ -379,6 +380,10 @@ export class MemorySampler {
 
   queryRun(payload = {}) {
     return queryRun(payload)
+  }
+
+  analyzePcap(payload = {}) {
+    return analyzePcap(payload)
   }
 
   launch(payload) {

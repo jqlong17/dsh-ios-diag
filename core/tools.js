@@ -179,6 +179,16 @@ export const TOOL_SPECS = [
     },
   },
   {
+    name: 'ios_net_analyze',
+    description: '解析一个本地 pcap（tshark），把 HTTP 请求 / 响应 / WS 帧拆成对象与链接。不抓包、不需要权限；适合用户用 Wireshark 抓好后直接分析。',
+    properties: {
+      path: { type: 'string', description: 'pcap / pcapng 的绝对路径。' },
+    },
+    async handler(sampler, args) {
+      return sampler.analyzePcap(args)
+    },
+  },
+  {
     name: 'ios_mem_launch',
     description: '在指定模拟器里启动一个 App（simctl launch），方便先起 App 再采样。',
     properties: {
