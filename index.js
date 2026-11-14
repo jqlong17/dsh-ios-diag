@@ -110,7 +110,11 @@ async function dispatch(op, payload) {
       return { rows: await listDiagnoses({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
     case 'diagnose': {
       const bundleId = String(payload.bundleId || (sampler.session.target && sampler.session.target.bundleId) || '')
-      const project = bundleId ? bundleId.split('.').pop() : String(process.cwd()).split('/').pop()
+      // 项目路径必须由用户给：不猜 cwd，避免「测错仓库还以为是这个」。
+      const target = String(payload.target || '').trim()
+      if (!target) throw new Error('请填写项目路径（代码健康扫描要指向具体仓库）')
+      if (!target.startsWith('/')) throw new Error('项目路径要用绝对路径')
+      const project = target.split('/').filter(Boolean).pop()
       let check = null
       let health = null
       try {
@@ -119,7 +123,7 @@ async function dispatch(op, payload) {
         check = null
       }
       try {
-        health = await scanHealth({ target: String(payload.target || process.cwd()), project })
+        health = await scanHealth({ target, project })
       } catch (error) {
         health = null
       }
@@ -158,6 +162,7 @@ async function dispatch(op, payload) {
         id: `diag-${stamp}`,
         at: now.toISOString(),
         project,
+        target,
         device: sampler.session.target ? sampler.session.target.deviceName : '模拟器',
         level: result.level,
         headline: result.headline,

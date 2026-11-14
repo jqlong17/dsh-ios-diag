@@ -24,10 +24,10 @@
 
       props.assessment
         ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "14px 16px",
-            borderLeft: "3px solid " + LEVEL_COLOR[props.assessment.level],
             boxShadow: "0 1px 2px rgba(0,0,0,.04), 0 6px 16px rgba(0,0,0,.03)" } },
-          e("div", { style: { display: "flex", alignItems: "baseline", gap: 8 } },
-            e("div", { style: { fontSize: 17, fontWeight: 700, color: LEVEL_COLOR[props.assessment.level], letterSpacing: "-0.01em", lineHeight: 1.35 } },
+          e("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+            e("span", { style: { width: 8, height: 8, borderRadius: 99, background: LEVEL_COLOR[props.assessment.level], flex: "0 0 auto" } }),
+            e("div", { style: { fontSize: 16.5, fontWeight: 700, color: LEVEL_COLOR[props.assessment.level], letterSpacing: "-0.01em", lineHeight: 1.35 } },
               props.assessment.headline),
             props.assessment.ruleId
               ? e("span", { style: { fontFamily: MONO, fontSize: 9.5, color: FG3, border: "1px solid " + BORDER, borderRadius: 5, padding: "0 4px", flex: "0 0 auto" } }, props.assessment.ruleId)
@@ -47,7 +47,13 @@
             : null)
         : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, border: "1px dashed " + BORDER, borderRadius: 12, padding: "12px 14px" } }, t("panel.overview.empty")),
 
+      props.diagTargets && props.diagTargets.length
+        ? e("datalist", { id: "diag-targets" },
+          props.diagTargets.map(function (path) { return e("option", { key: path, value: path }); }))
+        : null,
+
       e("input", {
+        list: "diag-targets",
         value: props.diagTarget,
         onChange: function (ev) { props.onTargetChange(ev.target.value); },
         placeholder: t("panel.diagnose.target"),
@@ -61,9 +67,12 @@
       e("div", { style: { display: "flex", gap: 6 } },
         e("button", {
           onClick: props.onDiagnose,
-          disabled: props.diagnoseBusy,
+          disabled: props.diagnoseBusy || !props.diagTarget,
           style: Object.assign({}, SMALL_BTN, {
-            flex: 1, background: ACCENT, color: "#fff", border: "1px solid " + ACCENT,
+            flex: 1,
+            background: props.diagTarget ? ACCENT : BG1,
+            color: props.diagTarget ? "#fff" : FG3,
+            border: "1px solid " + (props.diagTarget ? ACCENT : BORDER),
             padding: "8px 10px", fontSize: 12, fontWeight: 600,
           })
         }, props.diagnoseBusy ? t("panel.diagnose.running") : t("panel.diagnose.run"))),
@@ -150,12 +159,13 @@
       e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
         e("span", { style: { fontSize: 13, fontWeight: 600 } }, t("panel.view.code")),
         e("span", { style: { flex: 1 } }),
-        e("button", { onClick: props.onScan, disabled: props.busy, style: SMALL_BTN },
+        e("button", { onClick: props.onScan, disabled: props.busy || !props.target, style: SMALL_BTN },
           props.busy ? t("panel.code.scanning") : t("panel.code.scan"))),
 
       h && h.assessment
-        ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "12px 14px", borderLeft: "3px solid " + LEVEL_COLOR[h.assessment.level] } },
-          e("div", { style: { display: "flex", alignItems: "baseline", gap: 8 } },
+        ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "14px 16px" } },
+          e("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+            e("span", { style: { width: 8, height: 8, borderRadius: 99, background: LEVEL_COLOR[h.assessment.level], flex: "0 0 auto" } }),
             e("div", { style: { fontSize: 16, fontWeight: 700, color: LEVEL_COLOR[h.assessment.level] } }, h.assessment.headline),
             e("span", { style: { fontFamily: MONO, fontSize: 9.5, color: FG3, border: "1px solid " + BORDER, borderRadius: 5, padding: "0 4px" } }, h.assessment.ruleId)),
           (h.assessment.reasons || []).map(function (text, index) {
@@ -328,9 +338,9 @@
           setDiagTarget(function (prev) {
             if (prev) return prev;
             try {
-              return localStorage.getItem("diag.target") || res.value.cwd || "";
+              return localStorage.getItem("diag.target") || "";
             } catch (e) {
-              return res.value.cwd || "";
+              return "";
             }
           });
         }
@@ -441,7 +451,7 @@
 
     function scanCode() {
       setHealthBusy(true);
-      rpc("health", {}).then(function (res) {
+      rpc("health", { target: diagTarget }).then(function (res) {
         setHealthBusy(false);
         if (res && res.ok && res.value) setHealth(res.value);
       });
@@ -871,6 +881,7 @@
           diagnoseBusy: diagnoseBusy,
           onDiagnose: runDiagnose,
           diagTarget: diagTarget,
+          diagTargets: diagnoses.map(function (row) { return row.target; }).filter(function (path, index, list) { return path && list.indexOf(path) === index; }),
           includeDevice: includeDevice,
           onTargetChange: function (value) {
             setDiagTarget(value);
@@ -887,7 +898,7 @@
         })
         : null,
 
-      view === "code" ? e(CodeView, { t: t, health: health, busy: healthBusy, onScan: scanCode }) : null,
+      view === "code" ? e(CodeView, { t: t, health: health, busy: healthBusy, onScan: scanCode, target: diagTarget }) : null,
 
       view === "catalog" ? e(CatalogView, { t: t, catalog: catalog }) : null,
 
