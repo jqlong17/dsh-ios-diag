@@ -669,14 +669,15 @@ window.__ModuleLoader__.load({
               props.handoff.copied ? null : e("button", { onClick: props.onCopy, style: Object.assign({}, SMALL_BTN, { alignSelf: "flex-start" }) }, t("panel.handoff.copy")))
             : null,
 
-          props.runs && props.runs.filter(function (run) { return run.events > 0 || run.kind === 'preflight'; }).length
+          props.diagnoses && props.diagnoses.length
             ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
               e("div", { style: { fontSize: 13, fontWeight: 600, color: FG2 } }, t("panel.records.title")),
-              props.runs.filter(function (run) { return run.events > 0 || run.kind === 'preflight'; }).slice(0, 3).map(function (run) {
-                return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "7px 10px" } },
-                  e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.clock(run.from)),
-                  e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.kind === "preflight" ? t("panel.records.check") : run.events + " " + t("panel.records.points")),
-                  e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
+              props.diagnoses.slice(0, 6).map(function (row) {
+                return e("div", { key: row.id, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "7px 10px" } },
+                  e("span", { style: { width: 6, height: 6, borderRadius: 99, background: LEVEL_COLOR[row.level] || FG3, flex: "0 0 auto" } }),
+                  e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, props.clock(row.at)),
+                  e("span", { style: { fontSize: 11, color: FG2, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, row.headline),
+                  e("button", { onClick: function () { props.onCopyRecord(row); }, style: SMALL_BTN }, t("panel.records.open")));
               }))
             : null
         );
@@ -843,6 +844,7 @@ window.__ModuleLoader__.load({
         var [reportError, setReportError] = useState("");
         var [diagnose, setDiagnose] = useState(null);
         var [diagnoseBusy, setDiagnoseBusy] = useState(false);
+        var [diagnoses, setDiagnoses] = useState([]);
 
         var sinceRef = useRef(0);
         var startedRef = useRef(null);
@@ -879,7 +881,20 @@ window.__ModuleLoader__.load({
 
         useEffect(function () {
           void loadRuns();
+          void loadDiagnoses();
         }, []);
+
+        function loadDiagnoses() {
+          return rpc("diagnoses", { limit: 20 }).then(function (res) {
+            if (res && res.ok && res.value) setDiagnoses(res.value.rows || []);
+          });
+        }
+
+        function copyRecord(row) {
+          var text = row.handoff || row.reportPath;
+          setHandoff({ path: row.reportPath, text: text, copied: true });
+          copyText(text);
+        }
 
         useEffect(function () {
           rpc("info", {}).then(function (res) {
@@ -925,6 +940,7 @@ window.__ModuleLoader__.load({
             setDiagnose(res.value);
             setReportPath(res.value.path || "");
             void loadRuns();
+            void loadDiagnoses();
             if (res.value.handoff) {
               var text = res.value.handoff;
               setHandoff({ path: res.value.path || "", text: text, copied: false });
@@ -1419,6 +1435,8 @@ window.__ModuleLoader__.load({
               diagnose: diagnose,
               diagnoseBusy: diagnoseBusy,
               onDiagnose: runDiagnose,
+              diagnoses: diagnoses,
+              onCopyRecord: copyRecord,
               busy: runBusy,
               canReport: samples.length > 0,
               handoff: handoff,
@@ -1442,6 +1460,8 @@ window.__ModuleLoader__.load({
               diagnose: diagnose,
               diagnoseBusy: diagnoseBusy,
               onDiagnose: runDiagnose,
+              diagnoses: diagnoses,
+              onCopyRecord: copyRecord,
               busy: runBusy,
               canReport: samples.length > 0,
               onExport: exportRun,

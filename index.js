@@ -15,6 +15,7 @@ import { assessHealth } from './core/health.js'
 import { aggregateDiagnose, renderDiagnoseReport, buildDiagnoseHandoff } from './core/diagnose.js'
 import { assessMemory } from './core/assess.js'
 import { physicalDevices } from './core/trace.js'
+import { appendDiagnose, listDiagnoses } from './core/diagnose-store.js'
 import { writeFile, mkdir } from 'node:fs/promises'
 import { parseCheckReport, buildCheckHandoff } from './core/handoff.js'
 import { readFile } from 'node:fs/promises'
@@ -105,6 +106,8 @@ async function dispatch(op, payload) {
       return { modules: CATALOG }
     case 'preflight':
       return sampler.preflight(payload)
+    case 'diagnoses':
+      return { rows: await listDiagnoses({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
     case 'diagnose': {
       const bundleId = String(payload.bundleId || (sampler.session.target && sampler.session.target.bundleId) || '')
       const project = bundleId ? bundleId.split('.').pop() : String(process.cwd()).split('/').pop()
@@ -149,7 +152,23 @@ async function dispatch(op, payload) {
       })
       await writeFile(path, markdown)
       const handoff = buildDiagnoseHandoff({ result, reportPath: path, project, checks: check, healthPath: reportPaths.代码健康, root: ROOT })
-      return { ok: true, path, handoff, result, reportPaths }
+      // 每按一次 = 一条不可改记录；Markdown 只是它的视图。
+      const record = {
+        id: `diag-${stamp}`,
+        at: now.toISOString(),
+        project,
+        device: sampler.session.target ? sampler.session.target.deviceName : '模拟器',
+        level: result.level,
+        headline: result.headline,
+        subline: result.subline,
+        modules: result.modules,
+        reportPath: path,
+        healthPath: reportPaths.代码健康,
+        checkPath: reportPaths.体检,
+        handoff,
+      }
+      await appendDiagnose(record)
+      return { ok: true, path, handoff, result, reportPaths, record }
     }
     case 'reportNow': {
       const exported = await sampler.exportRun({ lastSeconds: 120 })
