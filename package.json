@@ -1,0 +1,51 @@
+{
+  "name": "dsh-ios-mem",
+  "version": "0.2.0",
+  "description": "iOS 内存实时面板：1 秒采样 footprint，时间轴看趋势，按类别 / 镜像 / 区域下钻；同时提供 MCP server。",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./core": "./core.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "core.js",
+    "client.js",
+    "bin",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    },
+    "hub": {
+      "summary": "iOS 内存实时面板：对模拟器里的 App 每秒采一次 footprint，画时间轴趋势，支持类别 / 镜像 / 区域三层下钻和打点；同一内核另带一个 stdio MCP server，可给 Claude Code、Cursor 等外部客户端用。"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "bin": {
+    "dsh-ios-mem-mcp": "./bin/mcp.mjs"
+  }
+}

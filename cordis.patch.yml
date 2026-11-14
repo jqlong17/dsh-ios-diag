@@ -1,0 +1,5 @@
+# dsh-ios-mem bundle：右侧栏内存面板 + 采样服务。
+# 宿主侧只依赖 connection / webServer / tools，没有第三方运行时依赖。
+- insert:
+    - id: dsh-ios-mem
+      name: './index.js'

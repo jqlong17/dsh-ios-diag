@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "iOS 内存",
+    "description": "对模拟器里的 App 每秒采一次 footprint，右侧栏画实时趋势，可按类别、镜像、区域标签三层下钻，并支持手动打点；同一内核另带一个 stdio MCP server，可给 Claude Code / Cursor 用。只支持模拟器：真机进程无法被宿主 attach。",
+    "detail": "docs/DETAIL.md"
+  }
+}

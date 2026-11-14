@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "iOS memory",
+    "description": "Samples an app's footprint once per second in the simulator, draws a live trend in the right sidebar, and drills down by VM category, loaded image, or region tag. The same core also ships a stdio MCP server for Claude Code / Cursor. Simulator only: physical-device processes cannot be attached from the host.",
+    "detail": "docs/DETAIL.md"
+  }
+}

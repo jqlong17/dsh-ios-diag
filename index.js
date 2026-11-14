@@ -1,0 +1,137 @@
+// dsh-ios-mem · 宿主侧入口：面板 RPC + DSH 原生工具
+//
+// 采样与聚合都在 core.js；这里只负责把同一个内核暴露成两条通道：
+//   POST /dsh-ios-mem  —— 右侧栏面板用
+//   ios_mem_* 工具     —— Agent 用（MCP 入口见 bin/mcp.mjs）
+import { MemorySampler, MAX_BODY_BYTES, TOOL_SPECS, toolInputSchema } from './core.js'
+
+const ROUTE = '/dsh-ios-mem'
+const LOG = '[dsh-ios-mem]'
+
+const sampler = new MemorySampler()
+
+export const name = 'dsh-ios-mem'
+
+export function apply(ctx) {
+  ctx.inject(['connection', 'webServer', 'tools'], (scoped) => {
+    scoped.effect(() => registerRoute(scoped), 'dsh-ios-mem: route')
+    scoped.effect(() => registerTools(scoped), 'dsh-ios-mem: tools')
+  })
+  ctx.effect(() => () => sampler.stop(), 'dsh-ios-mem: stop sampler on unload')
+  console.log(`${LOG} 已加载（${process.platform}）`)
+}
+
+// ---------------------------------------------------------------- HTTP RPC
+
+function sendJson(res, status, body) {
+  res.statusCode = status
+  res.setHeader('content-type', 'application/json; charset=utf-8')
+  res.setHeader('cache-control', 'no-store')
+  res.end(JSON.stringify(body))
+}
+
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    req.on('data', (chunk) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      size += buffer.length
+      if (size > MAX_BODY_BYTES) {
+        reject(new Error('请求体过大'))
+        req.destroy()
+        return
+      }
+      chunks.push(buffer)
+    })
+    req.on('end', () => {
+      const text = Buffer.concat(chunks).toString('utf8').trim()
+      if (!text) {
+        resolve({})
+        return
+      }
+      try {
+        const parsed = JSON.parse(text)
+        resolve(parsed && typeof parsed === 'object' ? parsed : {})
+      } catch {
+        reject(new Error('请求体不是 JSON'))
+      }
+    })
+    req.on('error', reject)
+  })
+}
+
+async function dispatch(op, payload) {
+  switch (op) {
+    case 'targets':
+      return sampler.listTargets(payload)
+    case 'start':
+      return sampler.startFromPayload(payload)
+    case 'stop':
+      sampler.stop()
+      return sampler.snapshot()
+    case 'state':
+      return sampler.snapshot(payload)
+    case 'detail':
+      return sampler.detail()
+    case 'mark':
+      return sampler.mark(payload)
+    case 'clear':
+      return sampler.clear()
+    case 'launch':
+      return sampler.launch(payload)
+    default:
+      throw new Error(`未知操作：${op}`)
+  }
+}
+
+function registerRoute(scoped) {
+  return scoped.webServer.register({
+    kind: 'prefix',
+    path: ROUTE,
+    handler: async (req, res) => {
+      try {
+        const rejection = scoped.connection?.requestRejection?.(req)
+        if (rejection !== undefined) {
+          res.statusCode = typeof rejection === 'number' ? rejection : 403
+          res.end()
+          return
+        }
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('allow', 'POST')
+          res.end()
+          return
+        }
+        const body = await readJsonBody(req)
+        const op = typeof body.op === 'string' ? body.op : ''
+        const payload = body.payload && typeof body.payload === 'object' ? body.payload : {}
+        const value = await dispatch(op, payload)
+        sendJson(res, 200, { ok: true, value })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        sendJson(res, 200, { ok: false, error: { code: 'dsh-ios-mem', message: message.slice(0, 600) } })
+      }
+    },
+  })
+}
+
+// ---------------------------------------------------------------- 工具
+
+function makeTool(spec) {
+  return {
+    name: spec.name,
+    description: spec.description,
+    parameters: toolInputSchema(spec),
+    output: {
+      schema: { type: 'object', additionalProperties: true },
+      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
+    },
+    execute: async (args) => spec.handler(sampler, args && typeof args === 'object' ? args : {}),
+  }
+}
+
+function registerTools(scoped) {
+  const disposers = TOOL_SPECS.map((spec) => scoped.tools.register(makeTool(spec)))
+  return () => { for (const dispose of disposers) dispose() }
+}
