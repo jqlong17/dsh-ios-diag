@@ -5,7 +5,7 @@
 
   var SMALL_BTN = {
     appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2,
-    fontSize: 10, borderRadius: 7, padding: "3px 9px", cursor: "pointer"
+    fontSize: 11, borderRadius: 8, padding: "4px 10px", cursor: "pointer"
   };
 
   var STATUS_COLOR = { pass: "#1f9d63", warn: "#c78500", fail: DANGER, unknown: FG3 };
@@ -17,12 +17,13 @@
     return e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
 
       props.verdict
-        ? e("div", { style: { background: BG2, borderRadius: 10, padding: "10px 12px", borderLeft: "3px solid " + props.verdict.color } },
-          e("div", { style: { fontSize: 20, fontWeight: 700, fontFamily: MONO, color: props.verdict.color, letterSpacing: "-0.02em" } }, props.verdict.value),
-          e("div", { style: { fontSize: 11, color: FG2, marginTop: 2 } }, props.verdict.text))
+        ? e("div", { style: { background: BG2, borderRadius: 14, padding: "12px 14px", borderLeft: "3px solid " + props.verdict.color,
+            boxShadow: "0 1px 2px rgba(0,0,0,.04), 0 6px 16px rgba(0,0,0,.03)" } },
+          e("div", { style: { fontSize: 24, fontWeight: 700, fontFamily: MONO, color: props.verdict.color, letterSpacing: "-0.03em" } }, props.verdict.value),
+          e("div", { style: { fontSize: 11.5, color: FG2, marginTop: 3 } }, props.verdict.text))
         : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, borderRadius: 10, padding: "10px 12px" } }, t("panel.overview.empty")),
 
-      e("div", { style: { border: "1px solid " + BORDER, borderRadius: 10, padding: "10px 12px", background: BG1 } },
+      e("div", { style: { border: "1px solid " + BORDER, borderRadius: 12, padding: "12px 14px", background: BG1 } },
         e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
           e("span", { style: { fontSize: 12, fontWeight: 600 } }, t("panel.preflight.title")),
           e("span", { style: { flex: 1 } }),
@@ -43,9 +44,9 @@
 
       props.runs && props.runs.length
         ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
-          e("div", { style: { fontSize: 10, color: FG3 } }, t("panel.records.title")),
+          e("div", { style: { fontSize: 12, fontWeight: 600, color: FG2 } }, t("panel.records.title")),
           props.runs.slice(0, 3).map(function (run) {
-            return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 7, padding: "4px 7px" } },
+            return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 10, padding: "6px 10px" } },
               e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.clock(run.from)),
               e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.events + " " + t("panel.records.points")),
               e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
@@ -64,7 +65,7 @@
       props.runs.length === 0
         ? e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.6, padding: "8px 2px" } }, t("panel.records.empty"))
         : props.runs.filter(function (run) { return run.events > 0; }).map(function (run) {
-          return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 8, padding: "5px 8px" } },
+          return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 10, padding: "7px 10px" } },
             e("span", { style: { fontSize: 10, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, props.clock(run.from)),
             e("span", { style: { fontSize: 11, color: FG, flex: "0 0 auto" } }, run.mode === "trace" ? "回放" : "采样"),
             e("span", { style: { fontSize: 10, color: FG3, flex: 1 } }, run.events + " " + t("panel.records.points") + (run.hasReport ? " · 有报告" : "")),
@@ -374,7 +375,7 @@
       };
     };
 
-    return e("div", { style: { display: "flex", flexDirection: "column", gap: 8, padding: "2px 2px 12px", color: FG, minWidth: 0, width: "100%", boxSizing: "border-box", overflowX: "hidden" } },
+    return e("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "6px 2px 16px", color: FG, minWidth: 0, width: "100%", boxSizing: "border-box", overflowX: "hidden" } },
 
       e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
         e("span", { style: { width: 6, height: 6, borderRadius: 99, background: running ? "#1f9d63" : FG3 } }),
@@ -382,15 +383,15 @@
         e("span", { style: { flex: 1 } })
       ),
 
-      e("div", { style: { display: "flex", gap: 2, background: BG2, borderRadius: 8, padding: 2 } },
+      e("div", { style: { display: "flex", gap: 2, background: BG2, borderRadius: 10, padding: 3 } },
         ["overview", "memory", "records"].map(function (key) {
           var active = view === key;
           return e("button", {
             key: key,
             onClick: function () { setView(key); },
             style: {
-              flex: 1, appearance: "none", border: 0, borderRadius: 6, padding: "4px 0",
-              fontSize: 11, fontWeight: active ? 650 : 500, cursor: "pointer",
+              flex: 1, appearance: "none", border: 0, borderRadius: 8, padding: "5px 0",
+              fontSize: 11.5, fontWeight: active ? 650 : 500, cursor: "pointer",
               background: active ? BG1 : "transparent", color: active ? FG : FG3,
               boxShadow: active ? "0 1px 2px rgba(0,0,0,.08)" : "none"
             }
@@ -466,7 +467,7 @@
           ) : null
         ),
 
-      e("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 4 } },
+      e("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 } },
         statCell(t("panel.current"), windowStats ? fmtMB(windowStats.current) : "—", FG),
         statCell(t("panel.peak"), windowStats ? fmtMB(windowStats.peak) : "—", FG),
         statCell(t("panel.delta"), windowStats ? (windowStats.delta >= 0 ? "+" : "") + fmtMB(windowStats.delta) : "—", windowStats && windowStats.delta > 0 ? WARN : "#1f9d63"),
@@ -564,7 +565,7 @@
   }
 
   function statCell(label, value, color) {
-    return e("div", { style: { background: BG2, borderRadius: 8, padding: "5px 7px", minWidth: 0, boxSizing: "border-box", overflow: "hidden" } },
+    return e("div", { style: { background: BG2, borderRadius: 10, padding: "6px 8px", minWidth: 0, boxSizing: "border-box", overflow: "hidden" } },
       e("div", { style: { fontSize: 9, color: FG3, marginBottom: 1, whiteSpace: "nowrap" } }, label),
       e("div", { style: { fontSize: 12, fontWeight: 650, fontFamily: MONO, color: color || FG, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, value)
     );
