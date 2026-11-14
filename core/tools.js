@@ -127,6 +127,34 @@ export const TOOL_SPECS = [
     },
   },
   {
+    name: 'ios_log_query',
+    description: '取模拟器里某个 App 最近 N 秒的统一日志（log show --style json），可按关键字过滤。排查「消息没发出去 / 重连风暴 / 协议错误」时先看这个。只支持模拟器。',
+    properties: {
+      bundleId: { type: 'string', description: 'App 的 bundle id；和 pid 二选一。' },
+      pid: { type: 'integer', description: '进程 pid；已知时优先。' },
+      udid: { type: 'string', description: '模拟器 udid；不传则自动找。' },
+      lastSeconds: { type: 'integer', description: '回看窗口秒数，5–300，默认 60。' },
+      grep: { type: 'string', description: '只保留 message 包含这个子串的记录（大小写不敏感）。' },
+      limit: { type: 'integer', description: '最多返回多少条，默认 200。' },
+    },
+    async handler(sampler, args) {
+      return sampler.queryLogs(args)
+    },
+  },
+  {
+    name: 'ios_hang_sample',
+    description: '对模拟器里的 App 采 N 秒调用栈（system sample），返回报告路径与前 80 行。查「卡住 / 转圈」时用：主线程栈就在报告里（搜 com.apple.main-thread）。',
+    properties: {
+      bundleId: { type: 'string', description: 'App 的 bundle id；和 pid 二选一。' },
+      pid: { type: 'integer', description: '进程 pid。' },
+      udid: { type: 'string', description: '模拟器 udid。' },
+      seconds: { type: 'integer', description: '采样秒数，1–10，默认 3。' },
+    },
+    async handler(sampler, args) {
+      return sampler.sampleHangs(args)
+    },
+  },
+  {
     name: 'ios_mem_launch',
     description: '在指定模拟器里启动一个 App（simctl launch），方便先起 App 再采样。',
     properties: {

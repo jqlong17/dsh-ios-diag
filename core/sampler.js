@@ -13,6 +13,7 @@ import {
 import { listTargets, findRunningApp, launchApp } from './targets.js'
 import { physicalDevices, recordTrace } from './trace.js'
 import { recordAllocations } from './allocations.js'
+import { queryLogs, sampleHangs } from './logs.js'
 
 export class MemorySampler {
   constructor() {
@@ -360,6 +361,14 @@ export class MemorySampler {
 
   recordAllocations(payload = {}) {
     return recordAllocations(this, payload)
+  }
+
+  queryLogs(payload = {}) {
+    return queryLogs(this, payload)
+  }
+
+  sampleHangs(payload = {}) {
+    return sampleHangs(this, payload)
   }
 
   launch(payload) {
