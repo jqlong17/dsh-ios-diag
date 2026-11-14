@@ -42,3 +42,10 @@ test('短窗口急涨：给 watch，不直接判泄漏', () => {
   assert.equal(result.level, 'watch')
   assert.ok(result.headline.includes('窗口太短'))
 })
+
+test('阶梯上涨：涨完就平，给 watch 而不是泄漏', () => {
+  const mbs = [60, 60, 60, 60, 100, 100, 100, 100, 100, 100]
+  const result = assessMemory({ samples: series(mbs), marks: [], windowSec: 60 })
+  assert.equal(result.level, 'watch')
+  assert.ok(result.headline.includes('一次性'))
+})

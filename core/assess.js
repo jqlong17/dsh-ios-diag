@@ -49,17 +49,27 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
   const last = values[values.length - 1]
   const avg = values.reduce((sum, value) => sum + value, 0) / count
   // 最小二乘斜率（MB/分钟）
-  const t0 = points[0].t
-  const xs = points.map((point) => (point.t - t0) / 60000)
-  const xMean = xs.reduce((sum, x) => sum + x, 0) / count
-  const yMean = avg
-  let num = 0
-  let den = 0
-  for (let i = 0; i < count; i += 1) {
-    num += (xs[i] - xMean) * (values[i] - yMean)
-    den += (xs[i] - xMean) ** 2
+  function slopeOf(list) {
+    const n = list.length
+    if (n < 2) return 0
+    const t0 = list[0].t
+    const xs = list.map((point) => (point.t - t0) / 60000)
+    const ys = list.map((point) => point.mb)
+    const xMean = xs.reduce((sum, x) => sum + x, 0) / n
+    const yMean = ys.reduce((sum, y) => sum + y, 0) / n
+    let num = 0
+    let den = 0
+    for (let i = 0; i < n; i += 1) {
+      num += (xs[i] - xMean) * (ys[i] - yMean)
+      den += (xs[i] - xMean) ** 2
+    }
+    return den > 0 ? num / den : 0
   }
-  const slope = den > 0 ? num / den : 0
+  const slope = slopeOf(points)
+  // 最近 15 秒的斜率：区分「一次性阶梯」和「持续上涨」。
+  const lastT = points[count - 1].t
+  const recent = points.filter((point) => point.t >= lastT - 15000)
+  const recentSlope = slopeOf(recent)
   const stats = {
     samples: count,
     spanSec: Math.round(spanSec),
@@ -68,6 +78,7 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
     maxMB: Math.round(max * 10) / 10,
     avgMB: Math.round(avg * 10) / 10,
     slopePerMinute: Math.round(slope * 10) / 10,
+    recentSlopePerMinute: Math.round(recentSlope * 10) / 10,
     marks: marks.length,
   }
 
@@ -78,6 +89,13 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
     reasons.push(`峰值 ${stats.maxMB}MB，超过 ${THRESHOLDS.highMB}MB。`)
     next.push('先按类型看谁占得最多（内存 → 按类型），再对那个操作打点复测。')
     return { level: 'bad', headline: `内存偏高：峰值 ${stats.maxMB}MB`, reasons, next, stats }
+  }
+
+  if (slope >= THRESHOLDS.leakPerMinute && recentSlope < THRESHOLDS.watchPerMinute) {
+    reasons.push(`窗口内从 ${stats.minMB} 涨到 ${stats.maxMB}MB，但最近 15 秒已经平了。`)
+    reasons.push('这是一次性上涨（比如一次渲染很重的内容），不是持续泄漏。')
+    next.push('把同一个操作重复 2–3 次：每次都涨、都不回落，才算泄漏。')
+    return { level: 'watch', headline: '一次性上涨，之后平稳', reasons, next, stats }
   }
 
   if (slope >= THRESHOLDS.leakPerMinute && spanSec < 20) {
