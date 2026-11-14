@@ -51,6 +51,7 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "build:client": "node scripts/build-client.mjs",
-    "handoff": "node scripts/handoff.mjs"
+    "handoff": "node scripts/handoff.mjs",
+    "report": "node scripts/report-from-run.mjs"
   }
 }

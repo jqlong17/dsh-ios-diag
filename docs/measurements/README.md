@@ -26,7 +26,13 @@ docs/measurements/
 
 ## 交接给被测项目
 
-跑完填好记录，用脚本生成一段可粘贴的消息（含绝对路径）：
+导出 run 后，先生成报告：
+
+```bash
+npm run report -- --run 20261114-1603 --project dsh-pocket-ios --title "DSH Pocket 内存采样"
+```
+
+再生成一段可粘贴的消息（含绝对路径）：
 
 ```bash
 node scripts/handoff.mjs --report docs/measurements/dsh-pocket-ios/2026-11-14-1425-stress-footprint.md
