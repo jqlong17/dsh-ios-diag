@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<trace-query-result>
+<node xpath='//trace-toc[1]/run[1]/data[1]/table[1]'><schema name="sysmon-process"><col><mnemonic>time</mnemonic></col><col><mnemonic>process</mnemonic></col><col><mnemonic>memory-physical-footprint</mnemonic></col><col><mnemonic>memory-resident-size</mnemonic></col><col><mnemonic>memory-compressed</mnemonic></col></schema>
+<row><start-time id="1" fmt="00:00.000.000">0</start-time><process id="2" fmt="DSH Pocket (841)"><pid id="3" fmt="841">841</pid></process><size-in-bytes id="4" fmt="1.5 MiB">1572864</size-in-bytes><size-in-bytes id="5" fmt="2 MiB">2097152</size-in-bytes><size-in-bytes id="6" fmt="0 Bytes">0</size-in-bytes></row>
+<row><start-time id="7" fmt="00:01.000.000">1000000000</start-time><process ref="2"/><size-in-bytes ref="4"/><size-in-bytes ref="5"/><size-in-bytes ref="6"/></row>
+<row><start-time id="8" fmt="00:02.000.000">2000000000</start-time><process ref="2"/><size-in-bytes id="9" fmt="3 MiB">3145728</size-in-bytes><size-in-bytes ref="5"/><size-in-bytes id="10" fmt="1 MiB">1048576</size-in-bytes></row>
+<row><start-time id="11" fmt="00:03.000.000">3000000000</start-time><process id="12" fmt="SpringBoard (55)"/><size-in-bytes id="13" fmt="9 MiB">9437184</size-in-bytes><size-in-bytes ref="5"/><size-in-bytes ref="6"/></row>
+</node>
+</trace-query-result>

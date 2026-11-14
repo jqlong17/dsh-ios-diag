@@ -47,5 +47,9 @@
   "license": "MIT",
   "bin": {
     "dsh-ios-mem-mcp": "./bin/mcp.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "build:client": "node scripts/build-client.mjs"
   }
 }
