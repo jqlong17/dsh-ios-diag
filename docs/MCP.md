@@ -39,6 +39,7 @@ node 需要 22+。
 | `ios_mem_stop` | 停止采样 |
 | `ios_mem_launch` | 在模拟器里启动 App |
 | `ios_mem_record` | 真机录一段（Activity Monitor，约 1Hz），载入时间轴 |
+| `ios_mem_types` | 真机录一段 Allocations，按类型排行 live bytes |
 
 ## 协议实现范围
 

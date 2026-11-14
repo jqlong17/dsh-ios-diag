@@ -114,6 +114,19 @@ export const TOOL_SPECS = [
     },
   },
   {
+    name: 'ios_mem_types',
+    description: '真机上录一段 Allocations（默认 10 秒），返回按分配类型聚合的 live bytes 排行（_DictionaryStorage / Malloc 16KiB / SwiftUI 图层…）。回答「这 100MB 到底是谁在吃」。VM 预留（如 JavaScriptCore 的 2GB 地址空间）不计入排行，单独给 reservedMB。会重新 launch 目标 App。',
+    properties: {
+      bundleId: { type: 'string', description: '真机上 App 的 bundle id。' },
+      seconds: { type: 'integer', description: '录制秒数，3–120，默认 10。' },
+      limit: { type: 'integer', description: '返回前多少行，默认 20，最大 100。' },
+      udid: { type: 'string', description: '设备 udid；不传则用第一台已连接的真机。' },
+    },
+    async handler(sampler, args) {
+      return sampler.recordAllocations(args)
+    },
+  },
+  {
     name: 'ios_mem_launch',
     description: '在指定模拟器里启动一个 App（simctl launch），方便先起 App 再采样。',
     properties: {

@@ -1,6 +1,6 @@
 # 真机 Allocations 类型下钻：把「谁在吃」从总量推进到分配类型
 
-> **Status**: In Review
+> **Status**: Accepted（用户 2026-11-14 确认按建议继续）
 > **起始日期**：2026-11-14
 > **预估工时**：60–90 分钟（按单元累加，见文末）
 > **对应提交**：（Accepted 后回填）
@@ -56,13 +56,13 @@
 
 ## 方案
 
-### 第 1 步：新模块 `allocations.js`（纯解析 + 录制编排）
+### 第 1 步：新模块 `core/allocations.js`（纯解析 + 录制编排）
 
 - 做什么：`parseAllocationStatistics(xml)`（纯函数）+ `recordAllocations(payload)`（调 xctrace）。
 - **为什么新开文件**：`core.js` 已经 750+ 行，超过规范 400 行上限；新代码按职责进新模块，
   不再加重存量债务。存量拆分单独排期（见未决问题）。
 - **为什么不放进 `core.js`**：这是本次唯一新增的解析器，独立文件可以独立测、独立删。
-- 改动范围：新增 `allocations.js`。
+- 改动范围：新增 `core/allocations.js`。
 
 ### 第 2 步：`core.js` 挂一个工具出口
 
@@ -136,3 +136,18 @@
 | fixture + 5 条测试 | 1 | 写测试比实现慢 | 20 分钟 |
 | 真机验证 + 文档 | 1 | 约 10 | 10 分钟 |
 | **合计** | | | **60–90 分钟**（baseline 记 75） |
+
+## 验收记录
+
+- 2026-11-14：`node --test test/*.test.mjs` 25 绿（新增 7 条 allocations 用例）。
+- 真机 iPhone 17 Pro（iOS 27.3）两次实测：
+  - 列表态：heap 15.5 MB / 匿名 VM 3.0 MB / 预留 0；top 类型 `Malloc 16.00 KiB` 2.2 MB。
+  - 会话态：heap 32.1 MB / 匿名 VM 23.4 MB / 预留 2048 MB；top 类型 `VM: _SwiftUILayerDelegate` 10.8 MB。
+- 与 Instruments 打开同一 trace 的 Statistics 排序一致（人工抽查前 5 行）。
+
+## 变更记录
+
+| 日期 | 原判断 | 新判断 | 触发原因 |
+| --- | --- | --- | --- |
+| 11-14 | 类型排行包含 Statistics 里所有非 All 行 | 排除 `VM: …Reservations`，单独 `reservedMB` | 真机首测 `VM: JS VM Reservations` 2048 MB，把总量拉到 2128 MB；那是地址空间不是物理占用 |
+| 11-14 | 只给一个 `totalMB` | 拆成 `heapMB` / `anonymousVMMB` / `reservedMB` | 同上：单个 total 会被 2 GB 预留污染，模型会当成真实占用 |

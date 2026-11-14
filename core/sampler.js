@@ -12,6 +12,7 @@ import {
 } from './util.js'
 import { listTargets, findRunningApp, launchApp } from './targets.js'
 import { physicalDevices, recordTrace } from './trace.js'
+import { recordAllocations } from './allocations.js'
 
 export class MemorySampler {
   constructor() {
@@ -355,6 +356,10 @@ export class MemorySampler {
 
   recordTrace(payload = {}) {
     return recordTrace(this, payload)
+  }
+
+  recordAllocations(payload = {}) {
+    return recordAllocations(this, payload)
   }
 
   launch(payload) {

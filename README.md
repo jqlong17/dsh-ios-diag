@@ -47,6 +47,7 @@ footprint -v -j <tmp> <pid>   # ~90ms，5000+ region 的 tag / 镜像 / 字节
 真机进程没有 `task_for_pid`，宿主 attach 不了；用 `xctrace` 的 Activity Monitor 模板录一段再回放：
 
 - `ios_mem_record { bundleId, seconds }`：录 3–120 秒（约 1Hz），录完直接载入面板，状态显示「已导入真机录制」。
+- `ios_mem_types { bundleId, seconds }`：录 Allocations，按分配类型给 live bytes 排行；VM 预留不计入。
 - 不需要改 App，也不需要 Debug 包；录制是一次性的，不是实时。
 
 限制：Activity Monitor 只给总量和 resident / compressed / anonymous，**没有类别与镜像下钻**——
