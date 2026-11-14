@@ -79,6 +79,8 @@ async function dispatch(op, payload) {
       return sampler.exportRun(payload)
     case 'runs':
       return { runs: await listRuns({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
+    case 'preflight':
+      return sampler.preflight(payload)
     case 'report': {
       const runId = String(payload.runId || '').trim()
       const dir = payload.dir || (runId ? join(RUNS_DIR, runId) : '')
