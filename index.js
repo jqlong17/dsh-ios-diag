@@ -146,9 +146,25 @@ async function dispatch(op, payload) {
       } catch (error) {
         device = null
       }
-      const memory = sampler.session.samples.length
+      // 没在采样就自动采一小段：一键诊断不应该让用户先去别处点「开始」。
+      let memory = sampler.session.samples.length
         ? assessMemory({ samples: sampler.session.samples, marks: sampler.session.marks })
         : null
+      if (!memory) {
+        try {
+          const listed = await sampler.listTargets({})
+          const firstApp = (listed.devices || []).flatMap((device) => (device.apps || []).map((app) => ({ ...app, udid: device.udid })))[0]
+          if (firstApp) {
+            const sampleSeconds = Math.min(30, Math.max(8, Number(payload.sampleSeconds) || 12))
+            await sampler.start({ udid: firstApp.udid, bundleId: firstApp.bundleId, intervalMs: 500 })
+            await new Promise((resolve) => setTimeout(resolve, sampleSeconds * 1000))
+            sampler.stop()
+            memory = assessMemory({ samples: sampler.session.samples, marks: sampler.session.marks })
+          }
+        } catch (error) {
+          memory = null
+        }
+      }
       const result = aggregateDiagnose({ check, health, memory, device: includeDevice ? device : null, includeDevice })
       const now = new Date()
       const pad = (value) => String(value).padStart(2, '0')
