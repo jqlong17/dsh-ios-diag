@@ -7,8 +7,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseJsonl } from '../core/query.js'
-import { summarizeRun, deriveFindings, renderReport } from '../core/report.js'
+import { generateReport } from '../core/report-run.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const runsDir = join(root, 'docs', 'measurements', '_runs')
@@ -46,18 +45,6 @@ if (!events.length) {
   process.exit(1)
 }
 
-const runId = runDir.split('/').pop()
-const summary = summarizeRun(events, links, runId)
-const findings = deriveFindings(summary, events, links)
-const markdown = renderReport({ title, project, runId, runDir, summary, findings, device })
-
-const now = new Date()
-const pad = (value) => String(value).padStart(2, '0')
-const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
-const out = outArg
-  ? resolve(outArg)
-  : join(root, 'docs', 'measurements', project, `${stamp}-${slug}.md`)
-
-await mkdir(dirname(out), { recursive: true })
-await writeFile(out, markdown)
+const result = await generateReport({ dir: runDir, project, title, slug, device, outDir: outArg ? resolve(outArg) : undefined })
+const out = result.path
 console.log(out)

@@ -1,0 +1,3 @@
+{"ts":"2026-11-14T07:39:30.000Z","type":"mark","id":"mark:1","sessionId":"run:1","rpcId":null,"pid":58620,"attrs":{"label":"enter"}}
+{"ts":"2026-11-14T07:39:35.000Z","type":"mem_sample","id":"mem:1","sessionId":"run:1","rpcId":null,"pid":58620,"attrs":{"totalMB":50}}
+{"ts":"2026-11-14T07:39:40.000Z","type":"mem_sample","id":"mem:2","sessionId":"run:1","rpcId":null,"pid":58620,"attrs":{"totalMB":52}}

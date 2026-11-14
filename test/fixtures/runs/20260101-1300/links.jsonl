@@ -1,0 +1,5 @@
+{"from":"mark:1","type":"contained_in","to":"run:1","method":"id","confidence":1}
+{"from":"mem:1","type":"contained_in","to":"run:1","method":"id","confidence":1}
+{"from":"mem:2","type":"contained_in","to":"run:1","method":"id","confidence":1}
+{"from":"mem:1","type":"contained_in","to":"mark:1","method":"time","confidence":0.5}
+{"from":"mem:2","type":"contained_in","to":"mark:1","method":"time","confidence":0.5}

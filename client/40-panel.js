@@ -27,6 +27,10 @@
     var [markOpen, setMarkOpen] = useState(false);
     var [markText, setMarkText] = useState("");
     var [filter, setFilter] = useState(null);
+    var [runs, setRuns] = useState([]);
+    var [showRuns, setShowRuns] = useState(true);
+    var [reportPath, setReportPath] = useState("");
+    var [runBusy, setRunBusy] = useState(false);
 
     var sinceRef = useRef(0);
     var startedRef = useRef(null);
@@ -60,6 +64,46 @@
     };
 
     useEffect(function () { void loadTargets(); }, []);
+
+    useEffect(function () {
+      void loadRuns();
+    }, []);
+
+    function loadRuns() {
+      return rpc("runs", { limit: 20 }).then(function (res) {
+        if (res && res.ok && res.value) setRuns(res.value.runs || []);
+      });
+    }
+
+    function exportRun() {
+      setRunBusy(true);
+      rpc("export", { lastSeconds: 120 }).then(function (res) {
+        setRunBusy(false);
+        if (res && res.ok && res.value) {
+          setShowRuns(true);
+          setReportPath(res.value.dir || "");
+          void loadRuns();
+        }
+      });
+    }
+
+    function makeReport(run) {
+      setRunBusy(true);
+      var project = serverTarget && serverTarget.bundleId
+        ? serverTarget.bundleId.split(".").pop()
+        : "unknown";
+      rpc("report", { runId: run.runId, project: project, title: "采集 " + run.runId }).then(function (res) {
+        setRunBusy(false);
+        if (res && res.ok && res.value) setReportPath(res.value.path || "");
+      });
+    }
+
+    function shortClock(iso) {
+      if (!iso) return "--:--";
+      var date = new Date(iso);
+      if (isNaN(date.getTime())) return "--:--";
+      return pad(date.getHours()) + ":" + pad(date.getMinutes());
+    }
 
     useEffect(function () {
       if (!pick && options.length) setPick(options[0].key);
@@ -364,6 +408,43 @@
               style: { fontSize: 9, color: FG2, background: BG2, borderRadius: 99, padding: "2px 7px", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }
             }, clock(mark.t) + " " + mark.label);
           }))
+        : null,
+
+      e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+        e("button", {
+          onClick: function () { setShowRuns(!showRuns); },
+          style: { appearance: "none", border: 0, background: "transparent", color: FG3, fontSize: 10, cursor: "pointer", padding: 0 }
+        }, (showRuns ? "▾ " : "▸ ") + t("panel.runs") + " (" + runs.length + ")"),
+        e("span", { style: { flex: 1 } }),
+        runBusy ? e("span", { style: { fontSize: 9, color: FG3 } }, t("panel.working")) : null,
+        e("button", {
+          onClick: exportRun,
+          disabled: runBusy,
+          style: { appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2, fontSize: 9, borderRadius: 6, padding: "1px 8px", cursor: "pointer" }
+        }, t("panel.export"))
+      ),
+
+      showRuns ? e("div", { style: { display: "flex", flexDirection: "column", gap: 2 } },
+        runs.length === 0
+          ? e("div", { style: { fontSize: 9, color: FG3, padding: "4px 0" } }, t("panel.runs.empty"))
+          : runs.slice(0, 8).map(function (run) {
+            return e("div", {
+              key: run.runId,
+              style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 4px", borderRadius: 6, background: BG2 }
+            },
+              e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, shortClock(run.from)),
+              e("span", { style: { fontSize: 9, color: FG2, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } },
+                run.events + " 事件 · " + run.links + " 链接" + (run.hasReport ? " · 有报告" : "")),
+              e("button", {
+                onClick: function () { makeReport(run); },
+                style: { appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2, fontSize: 9, borderRadius: 6, padding: "1px 6px", cursor: "pointer", flex: "0 0 auto" }
+              }, t("panel.makeReport"))
+            );
+          })
+      ) : null,
+
+      reportPath
+        ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, reportPath)
         : null,
 
       e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.5 } }, t("panel.footer.sim")),

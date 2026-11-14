@@ -3,7 +3,10 @@
 // 采样与聚合都在 core.js；这里只负责把同一个内核暴露成两条通道：
 //   POST /dsh-ios-mem  —— 右侧栏面板用
 //   ios_mem_* 工具     —— Agent 用（MCP 入口见 bin/mcp.mjs）
+import { join } from 'node:path'
 import { MemorySampler, MAX_BODY_BYTES, TOOL_SPECS, toolInputSchema } from './core.js'
+import { listRuns, RUNS_DIR } from './core/runs.js'
+import { generateReport } from './core/report-run.js'
 
 const ROUTE = '/dsh-ios-mem'
 const LOG = '[dsh-ios-mem]'
@@ -72,6 +75,21 @@ async function dispatch(op, payload) {
       return sampler.snapshot()
     case 'state':
       return sampler.snapshot(payload)
+    case 'export':
+      return sampler.exportRun(payload)
+    case 'runs':
+      return { runs: await listRuns({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
+    case 'report': {
+      const runId = String(payload.runId || '').trim()
+      const dir = payload.dir || (runId ? join(RUNS_DIR, runId) : '')
+      if (!dir) throw new Error('缺少 runId 或 dir')
+      return generateReport({
+        dir,
+        project: String(payload.project || 'unknown'),
+        title: String(payload.title || ''),
+        slug: String(payload.slug || 'run'),
+      })
+    }
     case 'detail':
       return sampler.detail()
     case 'mark':
