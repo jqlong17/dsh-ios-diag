@@ -81,7 +81,35 @@ export function summarizeArchitecture(exitCode, output) {
   return { ok: exitCode === 0, summary: lines.slice(-2).join(' ') }
 }
 
-export function renderHealthReport({ project, target, files, oversize, lint, coverage, architecture, minCoverage, generatedAt }) {
+/// Periphery 的 JSON：可能顶层是数组，也可能是 `{results:[…]}`（版本间有差异）。
+/// 只按 kind 计数 + 留样例，不做「该不该删」的判断——那要看人。
+export function parsePeriphery(json) {
+  let data
+  try {
+    data = JSON.parse(String(json || ''))
+  } catch {
+    return null
+  }
+  const rows = Array.isArray(data) ? data : (data && Array.isArray(data.results) ? data.results : null)
+  if (!rows) return null
+  const byKind = new Map()
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue
+    const kind = row.kind || row.type || 'unknown'
+    byKind.set(kind, (byKind.get(kind) || 0) + 1)
+  }
+  return {
+    total: rows.length,
+    byKind: [...byKind.entries()].map(([kind, count]) => ({ kind, count })).sort((a, b) => b.count - a.count),
+    samples: rows.slice(0, 10).map((row) => ({
+      kind: row.kind || row.type || '',
+      name: row.name || '',
+      location: typeof row.location === 'string' ? row.location : '',
+    })),
+  }
+}
+
+export function renderHealthReport({ project, target, files, oversize, lint, coverage, architecture, periphery, minCoverage, generatedAt }) {
   const totalLines = files.reduce((sum, file) => sum + file.lines, 0)
   const lines = []
   lines.push(`# 代码健康扫描 · ${project}`)
@@ -136,6 +164,22 @@ export function renderHealthReport({ project, target, files, oversize, lint, cov
     lines.push('')
     lines.push(`- 结果：${architecture.ok ? '通过' : '**有违规**'}`)
     lines.push(`- 输出：${architecture.summary || '（无输出）'}`)
+    lines.push('')
+  }
+  if (periphery) {
+    lines.push('## 未使用代码（Periphery）')
+    lines.push('')
+    lines.push(`- 共 ${periphery.total} 处`)
+    lines.push('')
+    if (periphery.byKind.length) {
+      lines.push('| 类型 | 数量 |')
+      lines.push('| --- | --- |')
+      for (const entry of periphery.byKind) lines.push(`| ${entry.kind} | ${entry.count} |`)
+      lines.push('')
+    }
+    for (const sample of periphery.samples.slice(0, 5)) {
+      lines.push(`- \`${sample.kind}\` ${sample.name} — ${sample.location}`)
+    }
     lines.push('')
   }
   lines.push('## 结论')

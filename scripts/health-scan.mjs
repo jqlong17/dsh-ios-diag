@@ -9,7 +9,7 @@ import { dirname, isAbsolute, join, resolve, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { exec } from '../core/util.js'
-import { countLines, findOversize, aggregateLint, parseXccovCoverage, summarizeArchitecture, renderHealthReport } from '../core/health.js'
+import { countLines, findOversize, aggregateLint, parseXccovCoverage, summarizeArchitecture, parsePeriphery, renderHealthReport } from '../core/health.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -99,11 +99,22 @@ if (flag('--arch')) {
   }
 }
 
+let periphery = null
+const peripheryProject = option('--periphery-project')
+if (peripheryProject) {
+  const peripheryArgs = ['scan', '--project', resolve(peripheryProject), '--format', 'json']
+  const schemes = option('--periphery-schemes')
+  if (schemes) peripheryArgs.push('--schemes', schemes)
+  const result = await exec('periphery', peripheryArgs, 600000)
+  periphery = parsePeriphery(result.stdout)
+  if (!periphery) console.error('periphery 输出解析失败（可能没有未使用代码，或格式变了）')
+}
+
 const now = new Date()
 const pad = (value) => String(value).padStart(2, '0')
 const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
 const generatedAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
-const markdown = renderHealthReport({ project, target, files, oversize, lint, coverage, architecture, minCoverage, generatedAt })
+const markdown = renderHealthReport({ project, target, files, oversize, lint, coverage, architecture, periphery, minCoverage, generatedAt })
 
 const out = option('--out')
   ? resolve(option('--out'))

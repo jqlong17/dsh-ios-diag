@@ -75,3 +75,23 @@ test('summarizeArchitecture：退出码与最后一行', async () => {
   const good = summarizeArchitecture(0, '✅ 架构检查通过\n')
   assert.equal(good.ok, true)
 })
+
+test('parsePeriphery：数组与 {results} 两种形状都能读，按 kind 计数', async () => {
+  const { parsePeriphery } = await import('../core/health.js')
+  const rows = [
+    { kind: 'class', name: 'Foo', location: '/x/Foo.swift:10' },
+    { kind: 'function', name: 'bar', location: '/x/Bar.swift:2' },
+    { kind: 'function', name: 'baz', location: '/x/Bar.swift:20' },
+  ]
+  const direct = parsePeriphery(JSON.stringify(rows))
+  assert.equal(direct.total, 3)
+  assert.equal(direct.byKind[0].kind, 'function')
+  assert.equal(direct.byKind[0].count, 2)
+  const wrapped = parsePeriphery(JSON.stringify({ results: rows }))
+  assert.equal(wrapped.total, 3)
+})
+
+test('parsePeriphery：坏 JSON 返回 null', async () => {
+  const { parsePeriphery } = await import('../core/health.js')
+  assert.equal(parsePeriphery('not json'), null)
+})
