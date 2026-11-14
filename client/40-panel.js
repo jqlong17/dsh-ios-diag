@@ -42,10 +42,10 @@
           ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, marginTop: 6, wordBreak: "break-all" } }, pf.dir + "/report.md")
           : null),
 
-      props.runs && props.runs.length
+      props.runs && props.runs.filter(function (run) { return run.events > 0; }).length
         ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
           e("div", { style: { fontSize: 12, fontWeight: 600, color: FG2 } }, t("panel.records.title")),
-          props.runs.slice(0, 3).map(function (run) {
+          props.runs.filter(function (run) { return run.events > 0; }).slice(0, 3).map(function (run) {
             return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 10, padding: "6px 10px" } },
               e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.clock(run.from)),
               e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.events + " " + t("panel.records.points")),
@@ -375,7 +375,7 @@
       };
     };
 
-    return e("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "6px 2px 16px", color: FG, minWidth: 0, width: "100%", boxSizing: "border-box", overflowX: "hidden" } },
+    return e("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "8px 14px 20px", color: FG, minWidth: 0, width: "100%", boxSizing: "border-box", overflowX: "hidden" } },
 
       e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
         e("span", { style: { width: 6, height: 6, borderRadius: 99, background: running ? "#1f9d63" : FG3 } }),
