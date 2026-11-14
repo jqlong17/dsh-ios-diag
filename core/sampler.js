@@ -96,7 +96,7 @@ export class MemorySampler {
       if (!alive(target.pid)) {
         // 压测时场景是「终止 → 重新 launch」，pid 每次都会变。
         // 同一个 bundle 又跑起来了就自动接上，否则等几次再放弃。
-        const next = await this.findRunningApp(target.udid, target.bundleId)
+        const next = await findRunningApp(target.udid, target.bundleId)
         if (next && next.pid !== target.pid) {
           this.revive(next.pid)
           this.reviveFailures = 0
@@ -286,7 +286,10 @@ export class MemorySampler {
       minMB: bytesToMB(low),
       avgMB: bytesToMB(avg),
       deltaMB: bytesToMB(last.total - first.total),
-      perMinuteMB: Math.round((last.total - first.total) / 1048576 / minutes * 10) / 10,
+      perMinuteMB: (() => {
+        const value = Math.round((last.total - first.total) / 1048576 / minutes * 10) / 10
+        return Object.is(value, -0) ? 0 : value
+      })(),
     }
   }
 

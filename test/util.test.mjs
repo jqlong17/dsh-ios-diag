@@ -29,3 +29,8 @@ test('bytesToMB 保留一位小数', () => {
   assert.equal(bytesToMB(1572864), 1.5)
   assert.equal(bytesToMB(0), 0)
 })
+
+test('bytesToMB：小负数不返回 -0（DSH 工具结果要求无损 JSON）', () => {
+  assert.equal(bytesToMB(-1), 0)
+  assert.equal(Object.is(bytesToMB(-1), -0), false)
+})

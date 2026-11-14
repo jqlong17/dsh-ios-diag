@@ -19,7 +19,9 @@ export function clamp(value, min, max) {
 }
 
 export function bytesToMB(value) {
-  return Math.round((Number(value) || 0) / 1048576 * 10) / 10
+  const mb = Math.round((Number(value) || 0) / 1048576 * 10) / 10
+  // -0 的 JSON 往返会变成 0，DSH 的工具结果校验会判「不是无损 JSON」直接报错。
+  return Object.is(mb, -0) ? 0 : mb
 }
 
 export function exec(file, args, timeout = 15000) {

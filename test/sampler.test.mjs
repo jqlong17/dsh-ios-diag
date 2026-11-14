@@ -52,3 +52,10 @@ test('clear：样本与打点归零', () => {
   assert.equal(sampler.session.marks.length, 0)
   assert.equal(sampler.session.seq, 0)
 })
+
+test('sampleOnce：进程不存在时不抛异常（回归：this.findRunningApp）', async () => {
+  const sampler = new MemorySampler()
+  sampler.session.target = { udid: 'NOPE', bundleId: 'com.example.nope', pid: 999999, appName: 'x' }
+  await sampler.sampleOnce()
+  assert.match(sampler.session.error || '', /已退出|采样失败/)
+})
