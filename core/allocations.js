@@ -9,7 +9,7 @@ import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { clamp, exec } from './util.js'
-import { physicalDevices } from './trace.js'
+import { waitForOnlineDevices } from './trace.js'
 
 const MEMBER_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" }
 
@@ -91,14 +91,23 @@ export async function recordAllocations(sampler, payload = {}) {
 
   let udid = String(payload.udid || '').trim()
   let deviceName = ''
-  const devices = await physicalDevices()
+  const devices = await waitForOnlineDevices()
+  const online = devices.filter((item) => item.online)
   if (!udid) {
-    if (!devices.length) throw new Error('没有检测到已连接的真机：解锁手机并信任这台电脑')
-    udid = devices[0].udid
-    deviceName = devices[0].name
+    if (!online.length) {
+      const offline = devices.filter((item) => !item.online)
+      throw new Error(offline.length
+        ? `检测到 ${offline.length} 台真机但 xctrace 视为离线（${offline.map((item) => item.name).join('、')}）：需要 USB 连接并保持解锁`
+        : '没有检测到已连接的真机：用 USB 连接、解锁并信任这台电脑')
+    }
+    udid = online[0].udid
+    deviceName = online[0].name
   } else {
     const found = devices.find((item) => item.udid === udid)
-    if (found) deviceName = found.name
+    if (found) {
+      if (!found.online) throw new Error(`${found.name} 当前离线：需要 USB 连接并保持解锁`)
+      deviceName = found.name
+    }
   }
 
   const output = join(tmpdir(), `dsh-ios-diag-alloc-${sampler.tag}.trace`)

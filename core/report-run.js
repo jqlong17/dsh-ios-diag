@@ -13,6 +13,13 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
   if (!events.length) throw new Error('run 里没有事件')
 
   const runId = dir.replace(/\/+$/, '').split('/').pop()
+  let meta = {}
+  try {
+    meta = JSON.parse(await readFile(join(dir, 'meta.json'), 'utf8'))
+  } catch {
+    // 老 run 没有 meta，按默认处理
+  }
+  const deviceLabel = device || (meta.deviceName ? `${meta.deviceName}（${meta.mode === 'trace' ? '真机' : '模拟器'}）` : undefined)
   const summary = summarizeRun(events, links, runId)
   const findings = deriveFindings(summary, events, links)
   const markdown = renderReport({
@@ -22,7 +29,7 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
     runDir: dir,
     summary,
     findings,
-    device,
+    device: deviceLabel,
     time,
   })
 

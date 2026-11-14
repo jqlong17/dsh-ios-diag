@@ -152,6 +152,14 @@ export async function exportRun(sampler, payload = {}) {
   await mkdir(dir, { recursive: true })
   await writeFile(join(dir, 'events.jsonl'), serializeJsonl(events))
   await writeFile(join(dir, 'links.jsonl'), serializeJsonl(links))
+  await writeFile(join(dir, 'meta.json'), JSON.stringify({
+    runId,
+    deviceName: sampler.session.target ? sampler.session.target.deviceName : null,
+    bundleId: sampler.session.target ? sampler.session.target.bundleId : null,
+    appName: sampler.session.target ? sampler.session.target.appName : null,
+    mode: sampler.session.mode || 'live',
+    startedAt: sampler.session.startedAt || null,
+  }, null, 2))
   await writeFile(join(dir, 'README.md'), `# run ${runId}
 
 - 事件：${events.length}（内存样本 ${sampler.session.samples.length}、打点 ${sampler.session.marks.length}、日志 ${logCount}）

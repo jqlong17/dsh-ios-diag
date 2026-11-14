@@ -44,3 +44,15 @@ test('renderReport：六段齐全，且带项目与 run 路径', () => {
   assert.ok(md.includes('> **项目**：demo'))
   assert.ok(md.includes('/tmp/run-1'))
 })
+
+test('启动爬坡：首个样本 0.1MB 不算增长百分比', async () => {
+  const { deriveFindings: derive } = await import('../core/report.js')
+  const ramp = [
+    { ts: '2026-11-14T09:29:00.000Z', type: 'mem_sample', id: 'mem:1', attrs: { totalMB: 0.1 } },
+    { ts: '2026-11-14T09:29:02.000Z', type: 'mem_sample', id: 'mem:2', attrs: { totalMB: 65 } },
+  ]
+  const summary = summarizeRun(ramp, [], 'x')
+  assert.equal(summary.memory.ramp, true)
+  assert.equal(summary.memory.deltaPercent, null)
+  assert.ok(derive(summary, ramp, []).some((text) => text.includes('启动爬坡')))
+})

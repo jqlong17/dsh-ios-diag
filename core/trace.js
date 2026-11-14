@@ -111,14 +111,37 @@ export async function physicalDevices() {
       section = heading[1]
       continue
     }
-    if (section !== 'Devices') continue
+    // 同时读「Devices」和「Devices Offline」：无线连接（localNetwork）的机子会落在离线段，
+    // 只读在线段会得到「没有检测到真机」，让人误以为没插线。
+    if (section !== 'Devices' && section !== 'Devices Offline') continue
     const text = line.trim()
     if (!text || /MacBook|Mac mini|Mac Studio|iMac|Mac Pro/i.test(text)) continue
     const match = text.match(/\(([0-9A-Fa-f]{8}-[0-9A-Fa-f]{16})\)\s*$/)
     if (!match) continue
-    devices.push({ udid: match[1], name: text.split(' (')[0] })
+    devices.push({ udid: match[1], name: text.split(' (')[0], online: section === 'Devices' })
   }
   return devices
+}
+
+/// 无线连接下 xctrace 的在线状态会抖：录一次能成功、下一次又「离线」。
+/// 轮询几次，避免把一次抖动当成「设备不可用」。
+export async function waitForOnlineDevices(attempts = 3, delayMs = 1000) {
+  let devices = []
+  for (let index = 0; index < attempts; index += 1) {
+    devices = await physicalDevices()
+    if (devices.some((item) => item.online)) return devices
+    if (index < attempts - 1) await new Promise((resolve) => setTimeout(resolve, delayMs))
+  }
+  return devices
+}
+
+/// 设备在 xctrace 里离线时的统一报错：最常见原因不是「没连」，而是无线连接/锁屏/没信任。
+function offlineError(devices) {
+  const offline = devices.filter((item) => !item.online)
+  if (offline.length) {
+    return new Error(`检测到 ${offline.length} 台真机但 xctrace 视为离线（${offline.map((item) => item.name).join('、')}）：需要 USB 连接并保持解锁，Wi-Fi 连接不稳定`)
+  }
+  return new Error('没有检测到已连接的真机：用 USB 连接、解锁并信任这台电脑')
 }
 
 /// 真机录一段：Activity Monitor 模板 → 导出 sysmon-process → 载入时间轴。
@@ -129,14 +152,18 @@ export async function recordTrace(sampler, payload = {}) {
   const seconds = clamp(Number(payload.seconds) || 10, 3, 120)
   let udid = String(payload.udid || '').trim()
   let deviceName = ''
-  const devices = await physicalDevices()
+  const devices = await waitForOnlineDevices()
+  const online = devices.filter((item) => item.online)
   if (!udid) {
-    if (!devices.length) throw new Error('没有检测到已连接的真机：解锁手机并信任这台电脑')
-    udid = devices[0].udid
-    deviceName = devices[0].name
+    if (!online.length) throw offlineError(devices)
+    udid = online[0].udid
+    deviceName = online[0].name
   } else {
     const found = devices.find((item) => item.udid === udid)
-    if (found) deviceName = found.name
+    if (found) {
+      if (!found.online) throw offlineError([found])
+      deviceName = found.name
+    }
   }
 
   const output = join(tmpdir(), `dsh-ios-diag-${sampler.tag}.trace`)

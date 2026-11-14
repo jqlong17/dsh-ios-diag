@@ -12,6 +12,8 @@ export function summarizeRun(events, links, runId) {
   const totals = sorted
     .filter((event) => event.type === 'mem_sample' && Number.isFinite(event.attrs && event.attrs.totalMB))
     .map((event) => event.attrs.totalMB)
+  // 真机录制的头几个样本是启动爬坡（0.1 MB → 30 MB），算百分比会得到 +65000%。
+  const ramp = totals.length > 1 && totals[0] < 10 && totals[totals.length - 1] > 20
   const memory = totals.length
     ? {
       firstMB: totals[0],
@@ -19,7 +21,8 @@ export function summarizeRun(events, links, runId) {
       minMB: Math.min(...totals),
       maxMB: Math.max(...totals),
       deltaMB: Math.round((totals[totals.length - 1] - totals[0]) * 10) / 10,
-      deltaPercent: totals[0] ? Math.round((totals[totals.length - 1] - totals[0]) / totals[0] * 1000) / 10 : 0,
+      deltaPercent: ramp ? null : (totals[0] ? Math.round((totals[totals.length - 1] - totals[0]) / totals[0] * 1000) / 10 : 0),
+      ramp,
     }
     : null
 
@@ -48,6 +51,8 @@ export function deriveFindings(summary, events, links) {
   const findings = []
   if (!summary.memory) {
     findings.push('这份 run 没有内存样本：要么没采样，要么导出时目标已退出。')
+  } else if (summary.memory.ramp) {
+    findings.push(`首个样本只有 ${summary.memory.firstMB} MB（启动爬坡），增长百分比不具参考意义；看峰值 ${summary.memory.maxMB} MB / 末值 ${summary.memory.lastMB} MB。`)
   } else if (summary.memory.deltaPercent >= 10) {
     findings.push(`内存从 ${summary.memory.firstMB} MB 涨到 ${summary.memory.lastMB} MB（+${summary.memory.deltaPercent}%）。`)
   }
@@ -79,7 +84,7 @@ function table(summary) {
   if (summary.memory) {
     rows.push(['内存 起点 / 终点', `${summary.memory.firstMB} / ${summary.memory.lastMB} MB`])
     rows.push(['内存 峰值 / 谷值', `${summary.memory.maxMB} / ${summary.memory.minMB} MB`])
-    rows.push(['内存 变化', `${summary.memory.deltaMB >= 0 ? '+' : ''}${summary.memory.deltaMB} MB（${summary.memory.deltaPercent}%）`])
+    rows.push(['内存 变化', `${summary.memory.deltaMB >= 0 ? '+' : ''}${summary.memory.deltaMB} MB${summary.memory.ramp ? '（启动爬坡，%不适用）' : `（${summary.memory.deltaPercent}%）`}`])
   }
   return ['| 指标 | 值 |', '| --- | --- |', ...rows.map(([key, value]) => `| ${key} | ${value} |`)].join('\n')
 }
@@ -90,7 +95,7 @@ export function renderReport({ title, project, runId, runDir, summary, findings,
   // 用本地时间：报告是给人看的，ISO/UTC 会让人以为是另一天。
   const when = time || `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
   const advice = []
-  if (summary.memory && summary.memory.deltaPercent >= 10) {
+  if (summary.memory && !summary.memory.ramp && summary.memory.deltaPercent >= 10) {
     advice.push('对照打点位置，确认内存上涨发生在哪个操作之后；再调 `ios_mem_detail` 看当时是谁占的。')
   }
   if (summary.logErrors > 0) {
@@ -111,7 +116,11 @@ export function renderReport({ title, project, runId, runDir, summary, findings,
     '## 摘要',
     '',
     `- 事件 ${Object.values(summary.counts).reduce((sum, value) => sum + value, 0)} 条；内存样本 ${summary.counts.mem_sample || 0} 个，打点 ${summary.counts.mark || 0} 个。`,
-    summary.memory ? `- 内存 ${summary.memory.firstMB} → ${summary.memory.lastMB} MB（${summary.memory.deltaPercent >= 0 ? '+' : ''}${summary.memory.deltaPercent}%）。` : '- 没有内存样本。',
+    summary.memory
+      ? (summary.memory.ramp
+        ? `- 内存 ${summary.memory.firstMB} → ${summary.memory.lastMB} MB（含启动爬坡；峰值 ${summary.memory.maxMB} MB）。`
+        : `- 内存 ${summary.memory.firstMB} → ${summary.memory.lastMB} MB（${summary.memory.deltaPercent >= 0 ? '+' : ''}${summary.memory.deltaPercent}%）。`)
+      : '- 没有内存样本。',
     '',
     '## 数据',
     '',
