@@ -53,6 +53,17 @@ footprint -v -j <tmp> <pid>   # ~90ms，5000+ region 的 tag / 镜像 / 字节
 限制：Activity Monitor 只给总量和 resident / compressed / anonymous，**没有类别与镜像下钻**——
 那需要 Allocations 模板，本版没做。
 
+## 测量记录与交接
+
+每次测完，报告写进本仓库 `docs/measurements/<项目>/<YYYY-MM-DD-HHMM>-<主题>.md`
+（约定见 [docs/measurements/README.md](docs/measurements/README.md)）。
+
+给被测项目交接时生成一段带绝对路径的消息，直接粘过去：
+
+```bash
+npm run handoff -- --report docs/measurements/dsh-pocket-ios/2026-11-14-1425-stress-footprint.md
+```
+
 ## 只读边界（重要）
 
 本工具**只读**被测项目：
