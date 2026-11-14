@@ -155,6 +155,17 @@ export const TOOL_SPECS = [
     },
   },
   {
+    name: 'ios_events_export',
+    description: '把当前这一轮的内存样本、打点、日志导出成统一事件表（events.jsonl + links.jsonl），落在插件仓库的 docs/measurements/_runs/<时间>/，返回绝对路径。链接分「id 事实」和「time 推断」两种，不要混用。',
+    properties: {
+      lastSeconds: { type: 'integer', description: '顺带取多久的日志，默认 120 秒。' },
+      includeLogs: { type: 'boolean', description: '是否包含日志，默认 true；日志可能含用户内容。' },
+    },
+    async handler(sampler, args) {
+      return sampler.exportRun(args)
+    },
+  },
+  {
     name: 'ios_mem_launch',
     description: '在指定模拟器里启动一个 App（simctl launch），方便先起 App 再采样。',
     properties: {

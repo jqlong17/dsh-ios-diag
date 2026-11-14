@@ -1,3 +1,6 @@
 node_modules/
 *.trace
 .DS_Store
+
+# 导出的 run（每次几十 KB，不入库；报告里引用绝对路径）
+docs/measurements/_runs/
