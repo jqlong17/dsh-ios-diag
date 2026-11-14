@@ -53,6 +53,14 @@ footprint -v -j <tmp> <pid>   # ~90ms，5000+ region 的 tag / 镜像 / 字节
 限制：Activity Monitor 只给总量和 resident / compressed / anonymous，**没有类别与镜像下钻**——
 那需要 Allocations 模板，本版没做。
 
+## 只读边界（重要）
+
+本工具**只读**被测项目：
+
+- 采样/录制只发生在设备或进程侧（`footprint`、`xctrace`），临时文件写在 `$TMPDIR` 并即删。
+- 不修改被测仓库的任何文件——包括它的基线文档。压测结果写在本仓库 `docs/measurements/`。
+- 场景切换靠 App 自己支持的环境变量（如 `DSH_STRESS`），工具只负责 `simctl launch`，不改 App 代码。
+
 ## 结构
 
 | 位置 | 作用 |
