@@ -126,6 +126,14 @@ export function buildDiagnoseHandoff({ result, reportPath, project, checks = nul
     const tag = module.skipped ? `[${module.id}·跳过]` : `[${module.id}]`
     lines.push(`- ${tag} ${module.name}：${module.headline}${module.ruleId ? `（${module.ruleId}）` : ''}`)
   }
+  if (checks && checks.items) {
+    const attention = checks.items.filter((item) => item.status !== 'pass')
+    if (attention.length) {
+      lines.push('体检需要注意：')
+      for (const item of attention) lines.push(`- ${item.title}（${item.status}）：${item.detail}`)
+      lines.push('')
+    }
+  }
   lines.push('')
   lines.push('完整诊断报告（绝对路径，直接读这个文件）：')
   lines.push(reportPath)

@@ -35,3 +35,17 @@ test('报告：带结论、模块与报告文件', () => {
   assert.ok(md.includes('demo'))
   assert.ok(md.includes('/x/pre/report.md'))
 })
+
+test('诊断交接：体检需要注意的项要列出来', async () => {
+  const { buildDiagnoseHandoff } = await import('../core/diagnose.js')
+  const result = aggregateDiagnose({ check: { verdict: 'warn', items: [] }, health: null, memory: null })
+  const text = buildDiagnoseHandoff({
+    result, reportPath: '/x/d.md', project: 'demo',
+    checks: { items: [
+      { title: '构建类型', status: 'warn', detail: 'Debug 构建' },
+      { title: '进程在跑', status: 'pass', detail: 'pid 1' },
+    ] },
+  })
+  assert.ok(text.includes('构建类型（warn）：Debug 构建'))
+  assert.ok(!text.includes('进程在跑（pass）'))
+})
