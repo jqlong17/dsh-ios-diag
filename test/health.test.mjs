@@ -95,3 +95,19 @@ test('parsePeriphery：坏 JSON 返回 null', async () => {
   const { parsePeriphery } = await import('../core/health.js')
   assert.equal(parsePeriphery('not json'), null)
 })
+
+test('assessHealth：超限与 Error 级给 bad，并带编号', async () => {
+  const { assessHealth } = await import('../core/health.js')
+  const result = assessHealth({
+    oversize: [{ path: '/x/Big.swift', lines: 620 }],
+    lint: { total: 3, byRule: [{ rule: 'function_body_length', count: 3, severity: 'Error' }] },
+  })
+  assert.equal(result.level, 'bad')
+  assert.equal(result.ruleId, 'G.1.1')
+  assert.ok(result.reasons.join(' ').includes('620'))
+})
+
+test('assessHealth：干净仓库给 ok', async () => {
+  const { assessHealth } = await import('../core/health.js')
+  assert.equal(assessHealth({}).level, 'ok')
+})

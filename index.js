@@ -8,6 +8,8 @@ import { MemorySampler, MAX_BODY_BYTES, TOOL_SPECS, toolInputSchema } from './co
 import { listRuns, RUNS_DIR } from './core/runs.js'
 import { generateReport } from './core/report-run.js'
 import { CATALOG } from './core/catalog.js'
+import { scanHealth } from './core/health-run.js'
+import { assessHealth } from './core/health.js'
 
 const ROUTE = '/dsh-ios-diag'
 const LOG = '[dsh-ios-diag]'
@@ -80,6 +82,12 @@ async function dispatch(op, payload) {
       return sampler.exportRun(payload)
     case 'runs':
       return { runs: await listRuns({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
+    case 'health': {
+      const target = String(payload.target || process.cwd())
+      const project = String(payload.project || target.split('/').filter(Boolean).pop() || 'repo')
+      const result = await scanHealth({ target, project, arch: Boolean(payload.arch) })
+      return { ...result, assessment: assessHealth(result) }
+    }
     case 'catalog':
       return { modules: CATALOG }
     case 'preflight':

@@ -114,6 +114,60 @@
   }
 
 
+
+  function CodeView(props) {
+    var t = props.t;
+    var h = props.health;
+    return e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
+      e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+        e("span", { style: { fontSize: 13, fontWeight: 600 } }, t("panel.view.code")),
+        e("span", { style: { flex: 1 } }),
+        e("button", { onClick: props.onScan, disabled: props.busy, style: SMALL_BTN },
+          props.busy ? t("panel.code.scanning") : t("panel.code.scan"))),
+
+      h && h.assessment
+        ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "12px 14px", borderLeft: "3px solid " + LEVEL_COLOR[h.assessment.level] } },
+          e("div", { style: { display: "flex", alignItems: "baseline", gap: 8 } },
+            e("div", { style: { fontSize: 16, fontWeight: 700, color: LEVEL_COLOR[h.assessment.level] } }, h.assessment.headline),
+            e("span", { style: { fontFamily: MONO, fontSize: 9.5, color: FG3, border: "1px solid " + BORDER, borderRadius: 5, padding: "0 4px" } }, h.assessment.ruleId)),
+          (h.assessment.reasons || []).map(function (text, index) {
+            return e("div", { key: index, style: { fontSize: 11.5, color: FG2, marginTop: 4, lineHeight: 1.55 } }, "· " + text);
+          }))
+        : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.6, border: "1px dashed " + BORDER, borderRadius: 12, padding: "12px 14px" } }, t("panel.code.empty")),
+
+      h
+        ? e("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 } },
+          statCell(t("panel.code.files"), String(h.files), FG),
+          statCell(t("panel.code.oversize"), String((h.oversize || []).length), (h.oversize || []).length ? WARN : FG),
+          statCell(t("panel.code.lint"), String((h.lint && h.lint.total) || 0), (h.lint && h.lint.total) ? WARN : FG))
+        : null,
+
+      h && h.oversize && h.oversize.length
+        ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
+          e("div", { style: { fontSize: 11, fontWeight: 600, color: FG2 } }, t("panel.code.oversize")),
+          h.oversize.slice(0, 5).map(function (file) {
+            return e("div", { key: file.path, style: { display: "flex", gap: 6, background: BG2, border: "1px solid " + BORDER, borderRadius: 8, padding: "5px 8px" } },
+              e("span", { style: { fontSize: 10, fontFamily: MONO, color: FG3, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, file.path.split("/").pop()),
+              e("span", { style: { fontSize: 10, color: FG2, flex: "0 0 auto" } }, file.lines + " 行"));
+          }))
+        : null,
+
+      h && h.lint && h.lint.byRule && h.lint.byRule.length
+        ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
+          e("div", { style: { fontSize: 11, fontWeight: 600, color: FG2 } }, t("panel.code.lint")),
+          h.lint.byRule.slice(0, 6).map(function (entry) {
+            return e("div", { key: entry.rule, style: { display: "flex", gap: 6, alignItems: "baseline" } },
+              e("span", { style: { fontSize: 10.5, color: FG, flex: 1 } }, entry.rule),
+              e("span", { style: { fontSize: 10, color: entry.severity === "Error" ? DANGER : FG3 } }, entry.count + " · " + entry.severity));
+          }))
+        : null,
+
+      h && h.path
+        ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, h.path)
+        : null
+    );
+  }
+
   function CatalogView(props) {
     var t = props.t;
     var modules = props.catalog || [];
@@ -179,6 +233,8 @@
     var [handoff, setHandoff] = useState(null);
     var [assessment, setAssessment] = useState(null);
     var [catalog, setCatalog] = useState([]);
+    var [health, setHealth] = useState(null);
+    var [healthBusy, setHealthBusy] = useState(false);
 
     var sinceRef = useRef(0);
     var startedRef = useRef(null);
@@ -257,6 +313,14 @@
         copyText(text).then(function (ok) {
           setHandoff({ path: res.value.path || "", text: text, copied: ok });
         });
+      });
+    }
+
+    function scanCode() {
+      setHealthBusy(true);
+      rpc("health", {}).then(function (res) {
+        setHealthBusy(false);
+        if (res && res.ok && res.value) setHealth(res.value);
       });
     }
 
@@ -491,7 +555,7 @@
       ),
 
       e("div", { style: { display: "flex", gap: 2, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: 3 } },
-        ["overview", "memory", "records", "catalog"].map(function (key) {
+        ["overview", "memory", "records", "code", "catalog"].map(function (key) {
           var active = view === key;
           return e("button", {
             key: key,
@@ -666,6 +730,8 @@
           onCopy: function () { if (handoff) copyText(handoff.text).then(function (ok) { setHandoff({ path: handoff.path, text: handoff.text, copied: ok }); }); },
         })
         : null,
+
+      view === "code" ? e(CodeView, { t: t, health: health, busy: healthBusy, onScan: scanCode }) : null,
 
       view === "catalog" ? e(CatalogView, { t: t, catalog: catalog }) : null,
 

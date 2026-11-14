@@ -66,6 +66,27 @@ export const CATALOG = [
     ],
   },
   {
+    id: 'G', title: '代码健康', summary: '规模、规则、覆盖率、未使用代码',
+    items: [
+      { id: 'G.0', title: '汇总', note: '所有指标合成一条结论' },
+      { id: 'G.1', title: '规模', items: [
+        { id: 'G.1.1', title: '文件超长', note: '单文件 >400 行' },
+        { id: 'G.1.2', title: '类型过大', note: '单类型 >150 行' },
+      ] },
+      { id: 'G.2', title: '结构规则', items: [
+        { id: 'G.2.1', title: '函数过长', note: '>40 行（SwiftLint function_body_length）' },
+        { id: 'G.2.2', title: '圈复杂度', note: '>15（cyclomatic_complexity）' },
+        { id: 'G.2.3', title: '强制解包', note: 'force_unwrapping，能崩的地方' },
+      ] },
+      { id: 'G.3', title: '覆盖率', items: [
+        { id: 'G.3.1', title: '行覆盖率', note: 'xccov 导出的 JSON，<85% 未达标' },
+      ] },
+      { id: 'G.4', title: '未使用代码', items: [
+        { id: 'G.4.1', title: 'Periphery', note: '需要一次构建，本环境未验证' },
+      ] },
+    ],
+  },
+  {
     id: 'F', title: '设备采集', summary: '真机怎么采',
     items: [
       { id: 'F.1', title: '连接方式', note: 'USB 稳定；网络会抖' },

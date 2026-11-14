@@ -193,3 +193,41 @@ export function renderHealthReport({ project, target, files, oversize, lint, cov
   lines.push('- 阈值是规范值（400 行/文件、150 行/类型），可按项目调整。')
   return lines.join('\n')
 }
+
+
+/// 把体检结果变成与内存同一套「结论 + 依据 + 下一步」的结构。
+/// 编号对应 catalog 的 G 模块：G.1 文件规模、G.2 结构规则、G.3 覆盖率、G.4 未使用代码。
+export function assessHealth({ oversize = [], lint = { total: 0, byRule: [] }, coverage = null, unused = null } = {}) {
+  const errors = (lint.byRule || []).filter((entry) => entry.severity === 'Error')
+  const reasons = []
+  const next = []
+
+  if (!oversize.length && !errors.length && (!coverage || coverage.overall >= 85)) {
+    return {
+      level: 'ok', ruleId: 'G.0',
+      headline: '结构在阈值内',
+      reasons: ['没有超过 400 行的文件，也没有 Error 级规则。'],
+      next: ['改动后再跑一次，和这份比数量级。'],
+    }
+  }
+
+  if (oversize.length) {
+    reasons.push(`${oversize.length} 个文件超过 400 行，最大 ${oversize[0].lines} 行（${oversize[0].path.split('/').pop()}）。`)
+    next.push('先拆最大的那个：按职责拆，不要按行数切。')
+  }
+  if (errors.length) {
+    reasons.push(`Error 级：${errors.map((entry) => `${entry.rule} ${entry.count} 处`).join('、')}。`)
+    next.push('函数过长优先处理：一次只抽一个函数，别顺手重构。')
+  }
+  if (coverage && coverage.overall < 85) {
+    reasons.push(`覆盖率 ${coverage.overall}%，低于 85%。`)
+  }
+
+  return {
+    level: errors.length ? 'bad' : 'watch',
+    ruleId: oversize.length ? 'G.1.1' : 'G.2.1',
+    headline: oversize.length ? `${oversize.length} 个文件超长` : `${lint.total} 条规则违规`,
+    reasons,
+    next,
+  }
+}
