@@ -155,7 +155,9 @@ npm run handoff -- --report docs/measurements/dsh-pocket-ios/<...>.md
 npm run health -- --target /path/to/repo --project <slug> [--arch] [--coverage-json x.json] [--gate]
 ```
 
-四个维度：文件规模（>400 行）、SwiftLint 结构规则、覆盖率（xccov）、目标仓库自己的架构检查。
+五个维度：文件规模（>400 行）、SwiftLint 结构规则、覆盖率（xccov）、未使用代码（Periphery）、
+目标仓库自己的架构检查。Periphery 需要一次构建（`--periphery-project` + `--periphery-schemes`），
+本机已装但**真跑未验证**。
 `--gate` 任一不达标退出 1。对目标仓库只读。
 
 ---
