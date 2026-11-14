@@ -1,6 +1,6 @@
 {
   "name": "dsh-ios-mem",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "iOS 内存实时面板：1 秒采样 footprint，时间轴看趋势，按类别 / 镜像 / 区域下钻；同时提供 MCP server。",
   "type": "module",
   "exports": {
@@ -11,15 +11,17 @@
     "./icon": "./icon.svg"
   },
   "files": [
-    "index.js",
-    "core.js",
-    "client.js",
+    "LICENSE",
+    "README.md",
     "bin",
+    "client.js",
+    "configs",
     "cordis.patch.yml",
-    "locale/*.json",
+    "core.js",
     "docs",
     "icon.svg",
-    "README.md"
+    "index.js",
+    "locale/*.json"
   ],
   "dsh": {
     "bundle": {
