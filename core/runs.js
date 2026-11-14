@@ -55,8 +55,11 @@ export async function listRuns({ base = RUNS_DIR, limit = 20 } = {}) {
     } catch {
       // 老 run 没有 meta
     }
+    // 体检（preflight-*）没有 events.jsonl，但同样是一次记录。
+    const kind = runId.startsWith('preflight-') || events.length === 0 ? 'preflight' : 'run'
     runs.push({
       runId,
+      kind,
       dir,
       events: events.length,
       links: links.length,

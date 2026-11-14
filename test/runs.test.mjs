@@ -23,3 +23,14 @@ test('listRuns：limit 生效', async () => {
 test('listRuns：目录不存在返回空', async () => {
   assert.deepEqual(await listRuns({ base: '/tmp/does-not-exist-xyz' }), [])
 })
+
+test('listRuns：体检目录标成 preflight', async () => {
+  const { mkdtemp, mkdir, writeFile } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const base = await mkdtemp(join(tmpdir(), 'dsh-runs-'))
+  await mkdir(join(base, 'preflight-20261114-1847'), { recursive: true })
+  await writeFile(join(base, 'preflight-20261114-1847', 'report.md'), '# 体检')
+  const runs = await listRuns({ base, limit: 5 })
+  assert.equal(runs[0].kind, 'preflight')
+})

@@ -74,10 +74,10 @@
           props.handoff.copied ? null : e("button", { onClick: props.onCopy, style: Object.assign({}, SMALL_BTN, { alignSelf: "flex-start" }) }, t("panel.handoff.copy")))
         : null,
 
-      props.runs && props.runs.filter(function (run) { return run.events > 0; }).length
+      props.runs && props.runs.filter(function (run) { return run.events > 0 || run.kind === 'preflight'; }).length
         ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
           e("div", { style: { fontSize: 13, fontWeight: 600, color: FG2 } }, t("panel.records.title")),
-          props.runs.filter(function (run) { return run.events > 0; }).slice(0, 3).map(function (run) {
+          props.runs.filter(function (run) { return run.events > 0 || run.kind === 'preflight'; }).slice(0, 3).map(function (run) {
             return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "7px 10px" } },
               e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.clock(run.from)),
               e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.events + " " + t("panel.records.points")),
@@ -104,12 +104,17 @@
 
       props.runs.length === 0
         ? e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.6, padding: "8px 2px" } }, t("panel.records.empty"))
-        : props.runs.filter(function (run) { return run.events > 0; }).map(function (run) {
+        : props.runs.filter(function (run) { return run.events > 0 || run.kind === 'preflight'; }).map(function (run) {
           return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "8px 10px" } },
             e("span", { style: { fontSize: 10, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, props.clock(run.from)),
-            e("span", { style: { fontSize: 12, color: FG, flex: "0 0 auto" } }, run.mode === "trace" ? "回放" : "采样"),
-            e("span", { style: { fontSize: 11, color: FG3, flex: 1 } }, run.events + " " + t("panel.records.points") + (run.hasReport ? " · 有报告" : "")),
-            e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
+            e("span", { style: { fontSize: 12, color: FG, flex: "0 0 auto" } },
+              run.kind === "preflight" ? t("panel.records.check") : (run.mode === "trace" ? "回放" : "采样")),
+            e("span", { style: { fontSize: 11, color: FG3, flex: 1 } },
+              run.kind === "preflight" ? t("panel.records.ready") : run.events + " " + t("panel.records.points") + (run.hasReport ? " · 有报告" : "")),
+            e("button", {
+              onClick: function () { run.kind === "preflight" ? props.onCopyPath(run) : props.onReport(run); },
+              style: SMALL_BTN
+            }, run.kind === "preflight" ? t("panel.records.path") : t("panel.records.open")));
         }),
       props.reportPath
         ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, props.reportPath)
@@ -310,6 +315,12 @@
       });
     }
 
+    function copyCheckPath(run) {
+      var path = run.dir + "/report.md";
+      setReportPath(path);
+      copyText(path);
+    }
+
     function makeReport(run) {
       setRunBusy(true);
       setReportError("");
@@ -349,7 +360,10 @@
       var bundleId = serverTarget ? serverTarget.bundleId : (pick ? pick.split("|")[1] : "");
       rpc("preflight", { bundleId: bundleId }).then(function (res) {
         setPreflightBusy(false);
-        if (res && res.ok && res.value) setPreflight(res.value);
+        if (res && res.ok && res.value) {
+          setPreflight(res.value);
+          void loadRuns();
+        }
       });
     }
 
@@ -752,6 +766,7 @@
           runs: runs,
           clock: shortClock,
           onReport: makeReport,
+          onCopyPath: copyCheckPath,
           handoff: handoff,
           reportError: reportError,
           onCopy: function () { if (handoff) copyText(handoff.text).then(function (ok) { setHandoff({ path: handoff.path, text: handoff.text, copied: ok }); }); },
@@ -768,6 +783,7 @@
           runs: runs,
           clock: shortClock,
           onReport: makeReport,
+          onCopyPath: copyCheckPath,
           onExport: exportRun,
           reportError: reportError,
           busy: runBusy,
