@@ -111,3 +111,48 @@ export function buildHandoff(text, { reportPath, root, toolName = 'dsh-ios-diag'
   out.push('我这边只读你们的工程，报告也只写在我自己的仓库里。')
   return out.join('\n') + '\n'
 }
+
+
+/// 解析体检 report.md（表格形式），转成结构化条目。
+export function parseCheckReport(markdown) {
+  const lines = String(markdown || '').split('\n')
+  const title = (lines.find((line) => line.startsWith('# ')) || '# 体检').slice(2).trim()
+  const app = (lines.find((line) => line.startsWith('- App：')) || '').replace('- App：', '').trim()
+  const verdictMatch = lines.find((line) => line.startsWith('- 结论：')) || ''
+  const verdict = (verdictMatch.match(/\*\*(.+?)\*\*/) || [])[1] || 'unknown'
+  const items = []
+  for (const line of lines) {
+    if (!line.startsWith('|')) continue
+    const cells = line.split('|').map((cell) => cell.trim()).filter(Boolean)
+    if (cells.length < 4) continue
+    if (cells[0] === '项' || /^[-: ]+$/.test(cells[0])) continue
+    items.push({ name: cells[0], status: cells[1], value: cells[2], why: cells[3] })
+  }
+  return { title, app, verdict, items }
+}
+
+export function buildCheckHandoff({ title, app, verdict, items = [], reportPath, root, toolName = 'dsh-ios-diag' }) {
+  const label = { pass: '通过', warn: '注意', fail: '不通过', unknown: '未知' }
+  const attention = items.filter((item) => item.status !== 'pass')
+  const out = []
+  out.push(`【装真机前体检】${app || title}`)
+  out.push('')
+  out.push(`结论：${label[verdict] || verdict}${attention.length ? `（${attention.length} 项需要看）` : '（全部通过）'}`)
+  out.push('')
+  if (attention.length) {
+    out.push('需要注意：')
+    for (const item of attention) out.push(`- ${item.name}（${label[item.status] || item.status}）：${item.value}`)
+    out.push('')
+  }
+  out.push('完整报告（绝对路径，直接读这个文件）：')
+  out.push(reportPath)
+  out.push('')
+  out.push('--- 怎么复查 ---')
+  out.push('')
+  out.push(`用 ${toolName} 重跑：ios_preflight { bundleId: "<App 的 bundle id>" }`)
+  out.push('装真机前要修的两类：构建类型是 Debug（数字不代表真机）、日志窗口内有 error。')
+  out.push('')
+  if (root) out.push(`工具仓库：${root}`)
+  out.push('这份体检只读模拟器与工作区，没有改你们的仓库。')
+  return out.join('\n') + '\n'
+}

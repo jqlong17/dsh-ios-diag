@@ -111,6 +111,11 @@ window.__ModuleLoader__.load({
           "panel.records.check": "体检",
           "panel.records.path": "路径",
           "panel.records.ready": "已生成",
+          "panel.reportNow": "生成报告并复制交接",
+          "panel.diagnose.run": "一键诊断（体检 + 代码 + 内存 + 真机）",
+          "panel.diagnose.running": "诊断中…",
+          "panel.diagnose.skip": "跳过",
+          "panel.reportNowEmpty": "先采样，再生成报告",
           "panel.assess.next": "下一步",
           "panel.handoff.copied": "已复制提示词：粘贴给 Agent，它会读上面的报告接着分析",
           "panel.handoff.copy": "再复制一次",
@@ -196,6 +201,11 @@ window.__ModuleLoader__.load({
           "panel.records.check": "Check",
           "panel.records.path": "Path",
           "panel.records.ready": "ready",
+          "panel.reportNow": "Report & copy handoff",
+          "panel.diagnose.run": "Run full diagnosis",
+          "panel.diagnose.running": "diagnosing…",
+          "panel.diagnose.skip": "skipped",
+          "panel.reportNowEmpty": "Sample first",
           "panel.assess.next": "下一步",
           "panel.assess.next": "Next",
           "panel.handoff.copied": "Prompt copied: paste it to an agent, it will read the report",
@@ -625,24 +635,31 @@ window.__ModuleLoader__.load({
                 : null)
             : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, border: "1px dashed " + BORDER, borderRadius: 12, padding: "12px 14px" } }, t("panel.overview.empty")),
 
-          e("div", { style: { border: "1px solid " + BORDER, borderRadius: 12, padding: "12px 14px", background: BG1 } },
-            e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
-              e("span", { style: { fontSize: 12, fontWeight: 600 } }, t("panel.preflight.title")),
-              e("span", { style: { flex: 1 } }),
-              e("button", { onClick: props.onPreflight, disabled: props.preflightBusy, style: SMALL_BTN },
-                props.preflightBusy ? t("panel.preflight.running") : t("panel.preflight.run"))),
-            pf && pf.items
-              ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3, marginTop: 8 } },
-                pf.items.map(function (item) {
-                  return e("div", { key: item.id, style: { display: "flex", gap: 6, alignItems: "baseline" } },
-                    e("span", { style: { color: STATUS_COLOR[item.status] || FG3, fontSize: 11, width: 10, flex: "0 0 auto" } }, STATUS_ICON[item.status] || "?"),
-                    e("span", { style: { fontSize: 11, color: FG, flex: "0 0 auto" } }, item.title),
-                    e("span", { style: { fontSize: 10, color: FG3, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, item.detail));
-                }))
-              : e("div", { style: { fontSize: 10, color: FG3, marginTop: 6, lineHeight: 1.5 } }, t("panel.preflight.empty")),
-            pf && pf.dir
-              ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, marginTop: 6, wordBreak: "break-all" } }, pf.dir + "/report.md")
-              : null),
+          e("div", { style: { display: "flex", gap: 6 } },
+            e("button", {
+              onClick: props.onDiagnose,
+              disabled: props.diagnoseBusy,
+              style: Object.assign({}, SMALL_BTN, {
+                flex: 1, background: ACCENT, color: "#fff", border: "1px solid " + ACCENT,
+                padding: "8px 10px", fontSize: 12, fontWeight: 600,
+              })
+            }, props.diagnoseBusy ? t("panel.diagnose.running") : t("panel.diagnose.run"))),
+
+          props.diagnose
+            ? e("div", { style: { border: "1px solid " + BORDER, borderRadius: 14, padding: "12px 14px", background: BG1, display: "flex", flexDirection: "column", gap: 6 } },
+              e("div", { style: { display: "flex", alignItems: "baseline", gap: 8 } },
+                e("div", { style: { fontSize: 16, fontWeight: 700, color: LEVEL_COLOR[props.diagnose.result.level] || FG } }, props.diagnose.result.headline),
+                e("span", { style: { flex: 1 } }),
+                e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.diagnose.path.split("/").pop())),
+              props.diagnose.result.modules.map(function (module) {
+                return e("div", { key: module.id, style: { display: "flex", gap: 6, alignItems: "baseline" } },
+                  e("span", { style: { fontFamily: MONO, fontSize: 9.5, color: FG3, flex: "0 0 auto" } }, "[" + module.id + "]"),
+                  e("span", { style: { fontSize: 11, color: FG, flex: "0 0 auto" } }, module.name),
+                  e("span", { style: { fontSize: 10.5, color: module.level ? LEVEL_COLOR[module.level] : FG3, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } },
+                    module.headline));
+              }))
+            : null,
+
 
           props.handoff
             ? e("div", { style: { background: BG2, borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 4 } },
@@ -658,7 +675,7 @@ window.__ModuleLoader__.load({
               props.runs.filter(function (run) { return run.events > 0 || run.kind === 'preflight'; }).slice(0, 3).map(function (run) {
                 return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "7px 10px" } },
                   e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.clock(run.from)),
-                  e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.events + " " + t("panel.records.points")),
+                  e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.kind === "preflight" ? t("panel.records.check") : run.events + " " + t("panel.records.points")),
                   e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
               }))
             : null
@@ -690,7 +707,7 @@ window.__ModuleLoader__.load({
                 e("span", { style: { fontSize: 11, color: FG3, flex: 1 } },
                   run.kind === "preflight" ? t("panel.records.ready") : run.events + " " + t("panel.records.points") + (run.hasReport ? " · 有报告" : "")),
                 e("button", {
-                  onClick: function () { run.kind === "preflight" ? props.onCopyPath(run) : props.onReport(run); },
+                  onClick: function () { props.onReport(run); },
                   style: SMALL_BTN
                 }, run.kind === "preflight" ? t("panel.records.path") : t("panel.records.open")));
             }),
@@ -824,6 +841,8 @@ window.__ModuleLoader__.load({
         var [healthBusy, setHealthBusy] = useState(false);
         var [version, setVersion] = useState("");
         var [reportError, setReportError] = useState("");
+        var [diagnose, setDiagnose] = useState(null);
+        var [diagnoseBusy, setDiagnoseBusy] = useState(false);
 
         var sinceRef = useRef(0);
         var startedRef = useRef(null);
@@ -893,6 +912,50 @@ window.__ModuleLoader__.load({
           });
         }
 
+        function runDiagnose() {
+          setDiagnoseBusy(true);
+          setReportError("");
+          var bundleId = serverTarget ? serverTarget.bundleId : undefined;
+          rpc("diagnose", { bundleId: bundleId }).then(function (res) {
+            setDiagnoseBusy(false);
+            if (!res || !res.ok || !res.value) {
+              setReportError((res && res.error && res.error.message) || "诊断失败");
+              return;
+            }
+            setDiagnose(res.value);
+            setReportPath(res.value.path || "");
+            void loadRuns();
+            if (res.value.handoff) {
+              var text = res.value.handoff;
+              setHandoff({ path: res.value.path || "", text: text, copied: false });
+              copyText(text).then(function (ok) {
+                setHandoff({ path: res.value.path || "", text: text, copied: ok });
+              });
+            }
+          });
+        }
+
+        function reportNow() {
+          setRunBusy(true);
+          setReportError("");
+          rpc("reportNow", {}).then(function (res) {
+            setRunBusy(false);
+            if (!res || !res.ok || !res.value) {
+              setReportError((res && res.error && res.error.message) || "生成报告失败");
+              return;
+            }
+            setReportPath(res.value.path || "");
+            void loadRuns();
+            if (res.value.handoff) {
+              var text = res.value.handoff;
+              setHandoff({ path: res.value.path || "", text: text, copied: false });
+              copyText(text).then(function (ok) {
+                setHandoff({ path: res.value.path || "", text: text, copied: ok });
+              });
+            }
+          });
+        }
+
         function copyCheckPath(run) {
           var path = run.dir + "/report.md";
           setReportPath(path);
@@ -941,6 +1004,13 @@ window.__ModuleLoader__.load({
             if (res && res.ok && res.value) {
               setPreflight(res.value);
               void loadRuns();
+              if (res.value.handoff) {
+                var text = res.value.handoff;
+                setHandoff({ path: res.value.dir + "/report.md", text: text, copied: false });
+                copyText(text).then(function (ok) {
+                  setHandoff({ path: res.value.dir + "/report.md", text: text, copied: ok });
+                });
+              }
             }
           });
         }
@@ -1345,6 +1415,12 @@ window.__ModuleLoader__.load({
               clock: shortClock,
               onReport: makeReport,
               onCopyPath: copyCheckPath,
+              onReportNow: reportNow,
+              diagnose: diagnose,
+              diagnoseBusy: diagnoseBusy,
+              onDiagnose: runDiagnose,
+              busy: runBusy,
+              canReport: samples.length > 0,
               handoff: handoff,
               reportError: reportError,
               onCopy: function () { if (handoff) copyText(handoff.text).then(function (ok) { setHandoff({ path: handoff.path, text: handoff.text, copied: ok }); }); },
@@ -1362,6 +1438,12 @@ window.__ModuleLoader__.load({
               clock: shortClock,
               onReport: makeReport,
               onCopyPath: copyCheckPath,
+              onReportNow: reportNow,
+              diagnose: diagnose,
+              diagnoseBusy: diagnoseBusy,
+              onDiagnose: runDiagnose,
+              busy: runBusy,
+              canReport: samples.length > 0,
               onExport: exportRun,
               reportError: reportError,
               busy: runBusy,

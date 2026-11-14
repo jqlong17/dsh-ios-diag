@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { bytesToMB, exec } from './util.js'
 import { listTargets } from './targets.js'
 import { queryLogs } from './logs.js'
+import { parseCheckReport, buildCheckHandoff } from './handoff.js'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
 const RUNS_DIR = join(ROOT, 'docs', 'measurements', '_runs')
@@ -211,7 +212,12 @@ export async function runPreflight(sampler, payload = {}) {
   const runId = `preflight-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
   const dir = join(RUNS_DIR, runId)
   await mkdir(dir, { recursive: true })
-  await writeFile(join(dir, 'report.md'), renderReport(runId, checks, inputs))
+  const markdown = renderReport(runId, checks, inputs)
+  await writeFile(join(dir, 'report.md'), markdown)
+
+  // 体检也是一次报告：直接把交接消息一起给出去，面板点完就能复制。
+  const parsed = parseCheckReport(markdown)
+  const handoff = buildCheckHandoff({ ...parsed, reportPath: join(dir, 'report.md'), root: ROOT })
 
   return {
     ok: true,
@@ -219,6 +225,7 @@ export async function runPreflight(sampler, payload = {}) {
     dir,
     verdict: checks.verdict,
     items: checks.items,
+    handoff,
     hint: 'report.md 是给人看的版本；阈值是经验值，可在 spec 里讨论调整。',
   }
 }

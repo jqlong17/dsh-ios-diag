@@ -60,3 +60,35 @@ test('buildHandoff：有结论段时以结论开头', () => {
   assert.ok(text.includes('结论：一次性上涨，之后平稳 [A.2.2]') || text.includes('结论：一次性上涨，之后平稳'))
   assert.ok(!text.includes('关键结论：'))
 })
+
+const checkMd = `# 装真机前体检 · preflight-1
+
+- App：DSH Pocket 1.0.8 (12)
+- 结论：**warn**
+
+| 项 | 状态 | 数值 | 依据 |
+| --- | --- | --- | --- |
+| 进程在跑 | pass | pid 1 | 能找到 |
+| 构建类型 | warn | Debug 构建 | 有 debug.dylib |
+`
+
+test('parseCheckReport：解析结论与条目', async () => {
+  const { parseCheckReport } = await import('../core/handoff.js')
+  const parsed = parseCheckReport(checkMd)
+  assert.equal(parsed.verdict, 'warn')
+  assert.equal(parsed.app, 'DSH Pocket 1.0.8 (12)')
+  assert.equal(parsed.items.length, 2)
+  assert.equal(parsed.items[1].name, '构建类型')
+})
+
+test('buildCheckHandoff：带路径、需要注意项与复查命令', async () => {
+  const { buildCheckHandoff } = await import('../core/handoff.js')
+  const text = buildCheckHandoff({
+    app: 'DSH Pocket 1.0.8 (12)', verdict: 'warn', reportPath: '/tmp/pre/report.md', root: '/tmp/repo',
+    items: [{ name: '构建类型', status: 'warn', value: 'Debug 构建' }, { name: '进程在跑', status: 'pass', value: 'pid 1' }],
+  })
+  assert.ok(text.includes('【装真机前体检】DSH Pocket'))
+  assert.ok(text.includes('/tmp/pre/report.md'))
+  assert.ok(text.includes('构建类型'))
+  assert.ok(text.includes('ios_preflight'))
+})

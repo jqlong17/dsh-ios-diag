@@ -5,13 +5,21 @@
 //   ios_mem_* 工具     —— Agent 用（MCP 入口见 bin/mcp.mjs）
 import { join } from 'node:path'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { MemorySampler, MAX_BODY_BYTES, TOOL_SPECS, toolInputSchema } from './core.js'
 import { listRuns, RUNS_DIR } from './core/runs.js'
 import { generateReport } from './core/report-run.js'
 import { CATALOG } from './core/catalog.js'
 import { scanHealth } from './core/health-run.js'
 import { assessHealth } from './core/health.js'
+import { aggregateDiagnose, renderDiagnoseReport, buildDiagnoseHandoff } from './core/diagnose.js'
+import { assessMemory } from './core/assess.js'
+import { physicalDevices } from './core/trace.js'
+import { writeFile, mkdir } from 'node:fs/promises'
+import { parseCheckReport, buildCheckHandoff } from './core/handoff.js'
+import { readFile } from 'node:fs/promises'
 
+const ROOT = fileURLToPath(new URL('./', import.meta.url))
 const ROUTE = '/dsh-ios-diag'
 const VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version
 const STARTED_AT = Date.now()
@@ -97,10 +105,73 @@ async function dispatch(op, payload) {
       return { modules: CATALOG }
     case 'preflight':
       return sampler.preflight(payload)
+    case 'diagnose': {
+      const bundleId = String(payload.bundleId || (sampler.session.target && sampler.session.target.bundleId) || '')
+      const project = bundleId ? bundleId.split('.').pop() : String(process.cwd()).split('/').pop()
+      let check = null
+      let health = null
+      try {
+        check = await sampler.preflight({ bundleId })
+      } catch (error) {
+        check = null
+      }
+      try {
+        health = await scanHealth({ target: String(payload.target || process.cwd()), project })
+      } catch (error) {
+        health = null
+      }
+      let device = null
+      try {
+        const devices = await physicalDevices()
+        device = devices.find((item) => item.online) || null
+      } catch (error) {
+        device = null
+      }
+      const memory = sampler.session.samples.length
+        ? assessMemory({ samples: sampler.session.samples, marks: sampler.session.marks })
+        : null
+      const result = aggregateDiagnose({ check, health, memory, device })
+      const now = new Date()
+      const pad = (value) => String(value).padStart(2, '0')
+      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
+      const when = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
+      const dir = join(ROOT, 'docs', 'measurements', project)
+      await mkdir(dir, { recursive: true })
+      const path = join(dir, `${stamp}-diagnose.md`)
+      const reportPaths = {
+        体检: check ? join(check.dir, 'report.md') : null,
+        代码健康: health ? health.path : null,
+      }
+      const markdown = renderDiagnoseReport({
+        project, when,
+        device: sampler.session.target ? sampler.session.target.deviceName : '模拟器',
+        result, reportPaths, checks: check,
+      })
+      await writeFile(path, markdown)
+      const handoff = buildDiagnoseHandoff({ result, reportPath: path, project, checks: check, healthPath: reportPaths.代码健康, root: ROOT })
+      return { ok: true, path, handoff, result, reportPaths }
+    }
+    case 'reportNow': {
+      const exported = await sampler.exportRun({ lastSeconds: 120 })
+      return generateReport({ dir: exported.dir })
+    }
     case 'report': {
       const runId = String(payload.runId || '').trim()
       const dir = payload.dir || (runId ? join(RUNS_DIR, runId) : '')
       if (!dir) throw new Error('缺少 runId 或 dir')
+      // 体检 run 没有事件表，但它有自己的 report.md 和交接文本。
+      try {
+        await readFile(join(dir, 'events.jsonl'))
+      } catch {
+        const markdown = await readFile(join(dir, 'report.md'), 'utf8')
+        const parsed = parseCheckReport(markdown)
+        return {
+          ok: true,
+          kind: 'preflight',
+          path: join(dir, 'report.md'),
+          handoff: buildCheckHandoff({ ...parsed, reportPath: join(dir, 'report.md'), root: process.cwd() }),
+        }
+      }
       return generateReport({
         dir,
         project: payload.project ? String(payload.project) : undefined,
