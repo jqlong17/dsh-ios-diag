@@ -29,3 +29,23 @@ test('generateReport：outFile 是精确路径', async () => {
   const result = await generateReport({ dir: runDir, project: 'demo', outFile: exact })
   assert.equal(result.path, exact)
 })
+
+test('generateReport：项目缺失时从 meta.bundleId 反推', async () => {
+  const { mkdtemp, writeFile } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-meta-'))
+  const events = [
+    { ts: '2026-11-14T10:00:00.000Z', type: 'mem_sample', id: 'mem:1', attrs: { totalMB: 60 } },
+    { ts: '2026-11-14T10:00:02.000Z', type: 'mem_sample', id: 'mem:2', attrs: { totalMB: 61 } },
+  ]
+  const { mkdir } = await import('node:fs/promises')
+  await mkdir(dir, { recursive: true })
+  await writeFile(join(dir, 'events.jsonl'), events.map((event) => JSON.stringify(event)).join('\n'))
+  await writeFile(join(dir, 'links.jsonl'), '')
+  await writeFile(join(dir, 'meta.json'), JSON.stringify({ bundleId: 'com.ruska.dsh-pocket-ios', appName: 'DSH Pocket' }))
+  const result = await generateReport({ dir, outFile: join(dir, 'out.md') })
+  assert.ok(result.path.endsWith('out.md'))
+  const text = await (await import('node:fs/promises')).readFile(result.path, 'utf8')
+  assert.ok(text.includes('> **项目**：dsh-pocket-ios'))
+})

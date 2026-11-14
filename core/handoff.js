@@ -40,6 +40,23 @@ export function buildHandoff(text, { reportPath, root, toolName = 'dsh-ios-diag'
     return out
   }
 
+  function blockLines(name) {
+    const start = lines.findIndex((line) => line.trim() === `## ${name}`)
+    if (start < 0) return []
+    const out = []
+    for (let i = start + 1; i < lines.length; i++) {
+      if (lines[i].startsWith('## ')) break
+      if (lines[i].trim()) out.push(lines[i].trim())
+    }
+    return out
+  }
+
+  const verdictBlock = blockLines('结论')
+  const verdictHeadline = verdictBlock.find((line) => line.startsWith('**')) || ''
+  const verdictItems = verdictBlock
+    .filter((line) => /^([-*]|\d+\.)\s/.test(line))
+    .map((line) => line.replace(/^([-*]|\d+\.)\s+/, '').trim())
+
   const summary = section('摘要')
   const advice = section('给被测项目的排查建议')
   const project = meta['项目'] || '被测项目'
@@ -53,12 +70,16 @@ export function buildHandoff(text, { reportPath, root, toolName = 'dsh-ios-diag'
   if (device) out.push(`设备：${device}`)
   out.push(`只读采样，没有改 ${project} 仓库的任何文件。`)
   out.push('')
-  if (summary.length) {
+  if (verdictHeadline) {
+    out.push(`结论：${verdictHeadline.replace(/\*/g, '').trim()}`)
+    for (const item of verdictItems) out.push(`- ${item}`)
+    out.push('')
+  } else if (summary.length) {
     out.push('关键结论：')
     for (const item of summary) out.push(`- ${item}`)
     out.push('')
   }
-  out.push('完整报告（绝对路径，直接读这个文件）：')
+    out.push('完整报告（绝对路径，直接读这个文件）：')
   out.push(reportPath)
   out.push('')
   if (healthPath) {

@@ -47,3 +47,16 @@ test('buildHandoff：没有健康报告就不硬塞', () => {
   const text = buildHandoff(report, { reportPath: '/tmp/r.md' })
   assert.equal(text.includes('代码健康报告'), false)
 })
+
+test('buildHandoff：有结论段时以结论开头', () => {
+  const withVerdict = `${report}
+## 结论
+
+**一次性上涨，之后平稳**　\`[A.2.2]\`
+
+- 窗口内从 61.3 涨到 101.6MB，但最近 15 秒已经平了。
+`
+  const text = buildHandoff(withVerdict, { reportPath: '/tmp/r.md' })
+  assert.ok(text.includes('结论：一次性上涨，之后平稳 [A.2.2]') || text.includes('结论：一次性上涨，之后平稳'))
+  assert.ok(!text.includes('关键结论：'))
+})

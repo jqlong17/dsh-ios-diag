@@ -9,7 +9,7 @@ import { assessMemory } from './assess.js'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
 
-export async function generateReport({ dir, project = 'unknown', title, slug = 'run', device, time, outDir, outFile }) {
+export async function generateReport({ dir, project, title, slug = 'run', device, time, outDir, outFile }) {
   const events = parseJsonl(await readFile(join(dir, 'events.jsonl'), 'utf8'))
   const links = parseJsonl(await readFile(join(dir, 'links.jsonl'), 'utf8'))
   if (!events.length) throw new Error('run 里没有事件')
@@ -21,6 +21,11 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
   } catch {
     // 老 run 没有 meta，按默认处理
   }
+  // 面板有时拿不到 target（会话被重载/目标退出），project 会传成 unknown。
+  // run 的 meta.json 里有 bundleId，够反推出项目名。
+  if (!project || project === 'unknown') {
+    project = (meta.bundleId && String(meta.bundleId).split('.').pop()) || meta.appName || 'unknown'
+  }
   const deviceLabel = device || (meta.deviceName ? `${meta.deviceName}（${meta.mode === 'trace' ? '真机' : '模拟器'}）` : undefined)
   const summary = summarizeRun(events, links, runId)
   const findings = deriveFindings(summary, events, links)
@@ -30,7 +35,7 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
   const marks = events.filter((event) => event.type === 'mark')
   const assessment = assessMemory({ samples, marks })
   const markdown = renderReport({
-    title: title || `采集 ${runId}`,
+    title: title || `${meta.appName || '内存采样'} · ${runId}`,
     project,
     runId,
     runDir: dir,

@@ -98,7 +98,7 @@ async function dispatch(op, payload) {
       if (!dir) throw new Error('缺少 runId 或 dir')
       return generateReport({
         dir,
-        project: String(payload.project || 'unknown'),
+        project: payload.project ? String(payload.project) : undefined,
         title: String(payload.title || ''),
         slug: String(payload.slug || 'run'),
       })

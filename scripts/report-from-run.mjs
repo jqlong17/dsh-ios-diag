@@ -21,7 +21,7 @@ function option(name) {
 
 const runArg = option('--run')
 const project = option('--project') || 'unknown'
-const title = option('--title') || `内存采样 run ${runArg || ''}`.trim()
+const title = option('--title')
 const slug = option('--slug') || 'run'
 const device = option('--device')
 const outArg = option('--out')
