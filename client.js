@@ -23,8 +23,8 @@ window.__ModuleLoader__.load({
       var FG2 = "var(--dsw-alias-label-secondary, #6b7280)";
       var FG3 = "var(--dsw-alias-label-tertiary, #9aa0aa)";
       var BG1 = "var(--dsw-alias-bg-layer-1, transparent)";
-      var BG2 = "var(--dsw-alias-bg-layer-2, rgba(0,0,0,.035))";
-      var BORDER = "var(--dsw-alias-border-l1, rgba(0,0,0,.09))";
+      var BG2 = "var(--dsw-alias-bg-layer-2, rgba(120,120,128,.10))";
+      var BORDER = "var(--dsw-alias-border-l1, rgba(0,0,0,.10))";
       var ACCENT = "var(--dsw-alias-state-business-primary, #4a63e7)";
       var DANGER = "var(--dsw-alias-state-error-primary, #d92d20)";
       var WARN = "var(--dsw-alias-state-warn-primary, #b54708)";
@@ -562,9 +562,9 @@ window.__ModuleLoader__.load({
         return e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
 
           props.verdict
-            ? e("div", { style: { background: BG2, borderRadius: 14, padding: "12px 14px", borderLeft: "3px solid " + props.verdict.color,
+            ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "12px 14px", borderLeft: "3px solid " + props.verdict.color,
                 boxShadow: "0 1px 2px rgba(0,0,0,.04), 0 6px 16px rgba(0,0,0,.03)" } },
-              e("div", { style: { fontSize: 24, fontWeight: 700, fontFamily: MONO, color: props.verdict.color, letterSpacing: "-0.03em" } }, props.verdict.value),
+              e("div", { style: { fontSize: 26, fontWeight: 700, fontFamily: MONO, color: props.verdict.color, letterSpacing: "-0.03em" } }, props.verdict.value),
               e("div", { style: { fontSize: 11.5, color: FG2, marginTop: 3 } }, props.verdict.text))
             : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, borderRadius: 10, padding: "10px 12px" } }, t("panel.overview.empty")),
 
@@ -597,9 +597,9 @@ window.__ModuleLoader__.load({
 
           props.runs && props.runs.filter(function (run) { return run.events > 0; }).length
             ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
-              e("div", { style: { fontSize: 12, fontWeight: 600, color: FG2 } }, t("panel.records.title")),
+              e("div", { style: { fontSize: 13, fontWeight: 600, color: FG2 } }, t("panel.records.title")),
               props.runs.filter(function (run) { return run.events > 0; }).slice(0, 3).map(function (run) {
-                return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 10, padding: "6px 10px" } },
+                return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "7px 10px" } },
                   e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.clock(run.from)),
                   e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.events + " " + t("panel.records.points")),
                   e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
@@ -626,10 +626,10 @@ window.__ModuleLoader__.load({
           props.runs.length === 0
             ? e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.6, padding: "8px 2px" } }, t("panel.records.empty"))
             : props.runs.filter(function (run) { return run.events > 0; }).map(function (run) {
-              return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 10, padding: "7px 10px" } },
+              return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "8px 10px" } },
                 e("span", { style: { fontSize: 10, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, props.clock(run.from)),
-                e("span", { style: { fontSize: 11, color: FG, flex: "0 0 auto" } }, run.mode === "trace" ? "回放" : "采样"),
-                e("span", { style: { fontSize: 10, color: FG3, flex: 1 } }, run.events + " " + t("panel.records.points") + (run.hasReport ? " · 有报告" : "")),
+                e("span", { style: { fontSize: 12, color: FG, flex: "0 0 auto" } }, run.mode === "trace" ? "回放" : "采样"),
+                e("span", { style: { fontSize: 11, color: FG3, flex: 1 } }, run.events + " " + t("panel.records.points") + (run.hasReport ? " · 有报告" : "")),
                 e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
             }),
           props.reportPath
@@ -966,7 +966,7 @@ window.__ModuleLoader__.load({
           };
         };
 
-        return e("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "8px 14px 20px", color: FG, minWidth: 0, width: "100%", boxSizing: "border-box", overflowX: "hidden" } },
+        return e("div", { style: { display: "flex", flexDirection: "column", gap: 10, padding: "10px 16px 22px", maxWidth: 620, margin: "0 auto", color: FG, minWidth: 0, width: "100%", boxSizing: "border-box", overflowX: "hidden" } },
 
           e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
             e("span", { style: { width: 6, height: 6, borderRadius: 99, background: running ? "#1f9d63" : FG3 } }),
@@ -974,7 +974,7 @@ window.__ModuleLoader__.load({
             e("span", { style: { flex: 1 } })
           ),
 
-          e("div", { style: { display: "flex", gap: 2, background: BG2, borderRadius: 10, padding: 3 } },
+          e("div", { style: { display: "flex", gap: 2, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: 3 } },
             ["overview", "memory", "records"].map(function (key) {
               var active = view === key;
               return e("button", {
@@ -1048,7 +1048,7 @@ window.__ModuleLoader__.load({
               e("div", { style: { fontSize: 12, fontWeight: 600, marginBottom: 4 } }, t("panel.empty.title")),
               e("div", { style: { fontSize: 10, color: FG2, lineHeight: 1.5 } }, t("panel.empty.body")))
             : e("div", null,
-              e(Timeline, {
+              e("div", { style: { border: "1px solid " + BORDER, borderRadius: 12, padding: "6px 6px 2px", background: BG1 } }, e(Timeline, {
                 samples: visible, marks: marks, filter: filter, hover: hover,
                 onHover: setHover, pickedSeq: pickedSeq, onPick: setPickedSeq, t: t
               }),
@@ -1056,7 +1056,7 @@ window.__ModuleLoader__.load({
                 e("span", { style: { fontSize: 10, color: FG2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, t("panel.filterOn") + "：" + filter),
                 e("button", { onClick: function () { setFilter(null); }, style: { appearance: "none", border: 0, background: "transparent", color: ACCENT, fontSize: 10, cursor: "pointer", padding: 0 } }, t("panel.clear"))
               ) : null
-            ),
+            )),
 
           e("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 } },
             statCell(t("panel.current"), windowStats ? fmtMB(windowStats.current) : "—", FG),
@@ -1073,7 +1073,7 @@ window.__ModuleLoader__.load({
                 key: key, onClick: function () { setDim(key); },
                 style: {
                   appearance: "none", border: 0, background: "transparent",
-                  padding: "5px 8px", fontSize: 11, cursor: "pointer",
+                  padding: "6px 10px", fontSize: 12, cursor: "pointer",
                   color: active ? FG : FG3, fontWeight: active ? 650 : 450,
                   borderBottom: "2px solid " + (active ? ACCENT : "transparent"),
                   marginBottom: -1,
@@ -1086,7 +1086,7 @@ window.__ModuleLoader__.load({
               : null
           ),
 
-          e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.4 } },
+          e("div", { style: { fontSize: 10, color: FG3, lineHeight: 1.4 } },
             dim === "category" ? t("panel.hint.category") : t("panel.hint.dim")),
 
           dim !== "category"
@@ -1121,7 +1121,7 @@ window.__ModuleLoader__.load({
               }))
             : null,
 
-          e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.5 } }, t("panel.footer.sim")),
+          e("div", { style: { fontSize: 10, color: FG3, lineHeight: 1.5 } }, t("panel.footer.sim")),
 
           hover === null && samples.length > 0
             ? e("div", { style: { fontSize: 9, color: FG3 } }, t("panel.hover.none"))
@@ -1158,9 +1158,9 @@ window.__ModuleLoader__.load({
       }
 
       function statCell(label, value, color) {
-        return e("div", { style: { background: BG2, borderRadius: 10, padding: "6px 8px", minWidth: 0, boxSizing: "border-box", overflow: "hidden" } },
-          e("div", { style: { fontSize: 9, color: FG3, marginBottom: 1, whiteSpace: "nowrap" } }, label),
-          e("div", { style: { fontSize: 12, fontWeight: 650, fontFamily: MONO, color: color || FG, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, value)
+        return e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "6px 8px", minWidth: 0, boxSizing: "border-box", overflow: "hidden" } },
+          e("div", { style: { fontSize: 10, color: FG3, marginBottom: 2, whiteSpace: "nowrap" } }, label),
+          e("div", { style: { fontSize: 13, fontWeight: 650, fontFamily: MONO, color: color || FG, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, value)
         );
       }
 

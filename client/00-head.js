@@ -9,8 +9,8 @@
   var FG2 = "var(--dsw-alias-label-secondary, #6b7280)";
   var FG3 = "var(--dsw-alias-label-tertiary, #9aa0aa)";
   var BG1 = "var(--dsw-alias-bg-layer-1, transparent)";
-  var BG2 = "var(--dsw-alias-bg-layer-2, rgba(0,0,0,.035))";
-  var BORDER = "var(--dsw-alias-border-l1, rgba(0,0,0,.09))";
+  var BG2 = "var(--dsw-alias-bg-layer-2, rgba(120,120,128,.10))";
+  var BORDER = "var(--dsw-alias-border-l1, rgba(0,0,0,.10))";
   var ACCENT = "var(--dsw-alias-state-business-primary, #4a63e7)";
   var DANGER = "var(--dsw-alias-state-error-primary, #d92d20)";
   var WARN = "var(--dsw-alias-state-warn-primary, #b54708)";
