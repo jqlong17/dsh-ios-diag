@@ -4,7 +4,7 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildHandoff } from '../core/handoff.js'
+import { buildHandoff, findHealthReport } from '../core/handoff.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -26,4 +26,6 @@ try {
   console.error(`读不到报告：${reportPath}`)
   process.exit(1)
 }
-process.stdout.write(buildHandoff(text, { reportPath, root }))
+const project = (text.match(/^> \*\*项目\*\*：(.+)$/m) || [])[1]
+const healthPath = project ? await findHealthReport(project.trim(), root) : null
+process.stdout.write(buildHandoff(text, { reportPath, root, healthPath }))

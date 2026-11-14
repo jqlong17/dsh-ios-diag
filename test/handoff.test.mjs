@@ -36,3 +36,14 @@ test('buildHandoff：空报告也不炸', () => {
   const text = buildHandoff('', { reportPath: '/x.md' })
   assert.ok(text.includes('/x.md'))
 })
+
+test('buildHandoff：有健康报告时一起给出路径', () => {
+  const text = buildHandoff(report, { reportPath: '/tmp/r.md', healthPath: '/tmp/h.md' })
+  assert.ok(text.includes('代码健康报告'))
+  assert.ok(text.includes('/tmp/h.md'))
+})
+
+test('buildHandoff：没有健康报告就不硬塞', () => {
+  const text = buildHandoff(report, { reportPath: '/tmp/r.md' })
+  assert.equal(text.includes('代码健康报告'), false)
+})

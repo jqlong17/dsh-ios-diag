@@ -1,10 +1,10 @@
 // core/report-run.js · 把一份 run 落成报告文件（CLI 与面板共用）
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseJsonl } from './query.js'
 import { summarizeRun, deriveFindings, renderReport } from './report.js'
-import { buildHandoff } from './handoff.js'
+import { buildHandoff, findHealthReport } from './handoff.js'
 import { assessMemory } from './assess.js'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
@@ -49,5 +49,8 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
   const path = outFile || join(baseDir, `${stamp}-${slug}.md`)
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, markdown)
-  return { ok: true, path, runId, events: events.length, links: links.length, handoff: buildHandoff(markdown, { reportPath: path, root: ROOT }) }
+
+  const healthPath = await findHealthReport(project, ROOT)
+
+  return { ok: true, path, runId, events: events.length, links: links.length, handoff: buildHandoff(markdown, { reportPath: path, root: ROOT, healthPath }) }
 }

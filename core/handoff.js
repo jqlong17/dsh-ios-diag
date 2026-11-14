@@ -4,7 +4,21 @@
 // 对方 Agent 能自己打开文件排查，不用人肉转述数字。
 // 纯函数：输入报告 Markdown + 路径，输出字符串。
 
-export function buildHandoff(text, { reportPath, root, toolName = 'dsh-ios-diag' }) {
+import { readdir } from 'node:fs/promises'
+import { join } from 'node:path'
+
+/// 同一项目最近一次的代码健康报告；没扫过就返回 null。
+export async function findHealthReport(project, root) {
+  try {
+    const dir = join(root, 'docs', 'measurements', project)
+    const files = (await readdir(dir)).filter((name) => name.endsWith('-health.md')).sort()
+    return files.length ? join(dir, files[files.length - 1]) : null
+  } catch {
+    return null
+  }
+}
+
+export function buildHandoff(text, { reportPath, root, toolName = 'dsh-ios-diag', healthPath = null }) {
   const lines = String(text || '').split('\n')
   const title = (lines.find((line) => line.startsWith('# ')) || '# 实测报告').slice(2).trim()
   const meta = {}
@@ -47,6 +61,11 @@ export function buildHandoff(text, { reportPath, root, toolName = 'dsh-ios-diag'
   out.push('完整报告（绝对路径，直接读这个文件）：')
   out.push(reportPath)
   out.push('')
+  if (healthPath) {
+    out.push('代码健康报告（另一份，同样直接读）：')
+    out.push(healthPath)
+    out.push('')
+  }
   if (advice.length) {
     out.push('建议排查：')
     advice.forEach((item, index) => out.push(`${index + 1}. ${item}`))
