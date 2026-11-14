@@ -88,6 +88,7 @@ window.__ModuleLoader__.load({
           "panel.view.records": "记录",
           "panel.view.catalog": "编号",
           "panel.view.code": "代码",
+          "panel.reload": "刷新面板",
           "panel.code.scan": "扫描当前仓库",
           "panel.code.scanning": "扫描中…",
           "panel.code.empty": "还没扫过。扫描是只读的，不会改你的仓库。",
@@ -169,6 +170,7 @@ window.__ModuleLoader__.load({
           "panel.view.records": "Records",
           "panel.view.catalog": "Index",
           "panel.view.code": "Code",
+          "panel.reload": "Reload panel",
           "panel.code.scan": "Scan repo",
           "panel.code.scanning": "scanning…",
           "panel.code.empty": "Not scanned yet. The scan is read-only.",
@@ -805,6 +807,7 @@ window.__ModuleLoader__.load({
         var [catalog, setCatalog] = useState([]);
         var [health, setHealth] = useState(null);
         var [healthBusy, setHealthBusy] = useState(false);
+        var [version, setVersion] = useState("");
 
         var sinceRef = useRef(0);
         var startedRef = useRef(null);
@@ -841,6 +844,12 @@ window.__ModuleLoader__.load({
 
         useEffect(function () {
           void loadRuns();
+        }, []);
+
+        useEffect(function () {
+          rpc("info", {}).then(function (res) {
+            if (res && res.ok && res.value) setVersion(res.value.version || "");
+          });
         }, []);
 
         useEffect(function () {
@@ -1121,7 +1130,13 @@ window.__ModuleLoader__.load({
           e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
             e("span", { style: { width: 6, height: 6, borderRadius: 99, background: running ? "#1f9d63" : FG3 } }),
             e("span", { style: { fontSize: 11, color: FG2 } }, statusText),
-            e("span", { style: { flex: 1 } })
+            e("span", { style: { flex: 1 } }),
+            version ? e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, "v" + version) : null,
+            e("button", {
+              onClick: function () { window.location.reload(); },
+              title: t("panel.reload"),
+              style: { appearance: "none", border: 0, background: "transparent", color: FG3, fontSize: 12, cursor: "pointer", padding: "0 2px" }
+            }, "↻")
           ),
 
           e("div", { style: { display: "flex", gap: 2, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: 3 } },

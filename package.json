@@ -1,6 +1,6 @@
 {
   "name": "dsh-ios-diag",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "iOS 诊断与取证工具包：体检、内存、日志、调用栈、pcap、统一事件表与报告（DSH 插件 + MCP）。",
   "type": "module",
   "exports": {

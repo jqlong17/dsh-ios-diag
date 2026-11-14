@@ -4,6 +4,7 @@
 //   POST /dsh-ios-diag  —— 右侧栏面板用
 //   ios_mem_* 工具     —— Agent 用（MCP 入口见 bin/mcp.mjs）
 import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { MemorySampler, MAX_BODY_BYTES, TOOL_SPECS, toolInputSchema } from './core.js'
 import { listRuns, RUNS_DIR } from './core/runs.js'
 import { generateReport } from './core/report-run.js'
@@ -12,6 +13,8 @@ import { scanHealth } from './core/health-run.js'
 import { assessHealth } from './core/health.js'
 
 const ROUTE = '/dsh-ios-diag'
+const VERSION = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version
+const STARTED_AT = Date.now()
 const LOG = '[dsh-ios-diag]'
 
 const sampler = new MemorySampler()
@@ -82,6 +85,8 @@ async function dispatch(op, payload) {
       return sampler.exportRun(payload)
     case 'runs':
       return { runs: await listRuns({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
+    case 'info':
+      return { version: VERSION, startedAt: STARTED_AT }
     case 'health': {
       const target = String(payload.target || process.cwd())
       const project = String(payload.project || target.split('/').filter(Boolean).pop() || 'repo')
