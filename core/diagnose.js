@@ -17,26 +17,38 @@ export function aggregateDiagnose({ check, health, memory, device = null, includ
       id: 'D',
       name: '装真机前体检',
       level,
+      skipped: false,
       headline: `体检 ${check.verdict}${check.items ? `（${check.items.filter((item) => item.status !== 'pass').length} 项需注意）` : ''}`,
+      ruleId: null,
+    })
+  } else {
+    // 没跑成就明说原因，而不是把这一项从报告里删掉。
+    modules.push({
+      id: 'D',
+      name: '装真机前体检',
+      level: null,
+      skipped: true,
+      headline: '未跑：没有找到运行中的 App（先打开模拟器里的 App）',
       ruleId: null,
     })
   }
 
   if (health) {
     const assessment = assessHealth(health)
-    modules.push({ id: 'G', name: '代码健康', level: assessment.level, headline: assessment.headline, ruleId: assessment.ruleId, reasons: assessment.reasons })
+    modules.push({ id: 'G', name: '代码健康', level: assessment.level, skipped: false, headline: assessment.headline, ruleId: assessment.ruleId, reasons: assessment.reasons })
   }
 
   if (memory && memory.stats) {
-    modules.push({ id: 'A', name: '内存', level: memory.level, headline: memory.headline, ruleId: memory.ruleId, reasons: memory.reasons })
+    modules.push({ id: 'A', name: '内存', level: memory.level, skipped: false, headline: memory.headline, ruleId: memory.ruleId, reasons: memory.reasons })
   } else {
-    modules.push({ id: 'A', name: '内存', level: null, headline: '本次没采样（内存要配合场景才有意义）', ruleId: null })
+    modules.push({ id: 'A', name: '内存', level: null, skipped: true, headline: '本次没采样（内存要配合场景才有意义）', ruleId: null })
   }
 
   modules.push({
     id: 'F',
     name: '真机',
     level: null,
+    skipped: !includeDevice || !device,
     headline: !includeDevice
       ? '未勾选真机（这次只跑模拟机）'
       : device
@@ -111,7 +123,7 @@ export function buildDiagnoseHandoff({ result, reportPath, project, checks = nul
   lines.push(`总体：${result.headline}`)
   lines.push('')
   for (const module of result.modules) {
-    const tag = module.level ? `[${module.id}]` : `[${module.id}·跳过]`
+    const tag = module.skipped ? `[${module.id}·跳过]` : `[${module.id}]`
     lines.push(`- ${tag} ${module.name}：${module.headline}${module.ruleId ? `（${module.ruleId}）` : ''}`)
   }
   lines.push('')

@@ -110,15 +110,26 @@ async function dispatch(op, payload) {
       return { rows: await listDiagnoses({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
     case 'diagnose': {
       const bundleId = String(payload.bundleId || (sampler.session.target && sampler.session.target.bundleId) || '')
+      let bundleIdOverride = bundleId
       // 项目路径必须由用户给：不猜 cwd，避免「测错仓库还以为是这个」。
       const target = String(payload.target || '').trim()
       if (!target) throw new Error('请填写项目路径（代码健康扫描要指向具体仓库）')
       if (!target.startsWith('/')) throw new Error('项目路径要用绝对路径')
       const project = target.split('/').filter(Boolean).pop()
+      // 没给 bundleId 时，从正在运行的模拟器 App 里找一个，避免体检直接失败。
+      if (!bundleId) {
+        try {
+          const listed = await sampler.listTargets({})
+          const firstApp = (listed.devices || []).flatMap((device) => device.apps || [])[0]
+          if (firstApp) bundleIdOverride = firstApp.bundleId
+        } catch (error) {
+          // 找不到就保持为空，体检会标「未跑」
+        }
+      }
       let check = null
       let health = null
       try {
-        check = await sampler.preflight({ bundleId })
+        check = await sampler.preflight({ bundleId: bundleIdOverride })
       } catch (error) {
         check = null
       }
