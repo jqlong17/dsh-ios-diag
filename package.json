@@ -1,7 +1,7 @@
 {
-  "name": "dsh-ios-mem",
-  "version": "0.3.0",
-  "description": "iOS 内存实时面板：1 秒采样 footprint，时间轴看趋势，按类别 / 镜像 / 区域下钻；同时提供 MCP server。",
+  "name": "dsh-ios-diag",
+  "version": "0.4.0",
+  "description": "iOS 诊断与取证工具包：体检、内存、日志、调用栈、pcap、统一事件表与报告（DSH 插件 + MCP）。",
   "type": "module",
   "exports": {
     ".": "./index.js",
@@ -37,7 +37,7 @@
       ]
     },
     "hub": {
-      "summary": "iOS 内存实时面板：对模拟器里的 App 每秒采一次 footprint，画时间轴趋势，支持类别 / 镜像 / 区域三层下钻和打点；同一内核另带一个 stdio MCP server，可给 Claude Code、Cursor 等外部客户端用。"
+      "summary": "iOS 诊断与取证：装真机前体检、模拟器内存/日志/调用栈、真机录制与类型下钻、pcap 解析、统一事件表与报告；同时提供 stdio MCP server 与代码健康扫描。"
     }
   },
   "peerDependencies": {
@@ -48,7 +48,7 @@
   },
   "license": "MIT",
   "bin": {
-    "dsh-ios-mem-mcp": "./bin/mcp.mjs"
+    "dsh-ios-diag-mcp": "./bin/mcp.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",

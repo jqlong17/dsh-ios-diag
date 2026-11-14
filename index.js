@@ -1,26 +1,26 @@
-// dsh-ios-mem · 宿主侧入口：面板 RPC + DSH 原生工具
+// dsh-ios-diag · 宿主侧入口：面板 RPC + DSH 原生工具
 //
 // 采样与聚合都在 core.js；这里只负责把同一个内核暴露成两条通道：
-//   POST /dsh-ios-mem  —— 右侧栏面板用
+//   POST /dsh-ios-diag  —— 右侧栏面板用
 //   ios_mem_* 工具     —— Agent 用（MCP 入口见 bin/mcp.mjs）
 import { join } from 'node:path'
 import { MemorySampler, MAX_BODY_BYTES, TOOL_SPECS, toolInputSchema } from './core.js'
 import { listRuns, RUNS_DIR } from './core/runs.js'
 import { generateReport } from './core/report-run.js'
 
-const ROUTE = '/dsh-ios-mem'
-const LOG = '[dsh-ios-mem]'
+const ROUTE = '/dsh-ios-diag'
+const LOG = '[dsh-ios-diag]'
 
 const sampler = new MemorySampler()
 
-export const name = 'dsh-ios-mem'
+export const name = 'dsh-ios-diag'
 
 export function apply(ctx) {
   ctx.inject(['connection', 'webServer', 'tools'], (scoped) => {
-    scoped.effect(() => registerRoute(scoped), 'dsh-ios-mem: route')
-    scoped.effect(() => registerTools(scoped), 'dsh-ios-mem: tools')
+    scoped.effect(() => registerRoute(scoped), 'dsh-ios-diag: route')
+    scoped.effect(() => registerTools(scoped), 'dsh-ios-diag: tools')
   })
-  ctx.effect(() => () => sampler.stop(), 'dsh-ios-mem: stop sampler on unload')
+  ctx.effect(() => () => sampler.stop(), 'dsh-ios-diag: stop sampler on unload')
   console.log(`${LOG} 已加载（${process.platform}）`)
 }
 
@@ -128,7 +128,7 @@ function registerRoute(scoped) {
         sendJson(res, 200, { ok: true, value })
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        sendJson(res, 200, { ok: false, error: { code: 'dsh-ios-mem', message: message.slice(0, 600) } })
+        sendJson(res, 200, { ok: false, error: { code: 'dsh-ios-diag', message: message.slice(0, 600) } })
       }
     },
   })

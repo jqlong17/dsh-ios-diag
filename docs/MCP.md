@@ -15,13 +15,13 @@ stdio 传输，命令行直接跑：
   "mcpServers": {
     "ios-mem": {
       "command": "node",
-      "args": ["/Users/ruska/projects/dsh-plugins/dsh-ios-mem/bin/mcp.mjs"]
+      "args": ["/Users/ruska/projects/dsh-plugins/dsh-ios-diag/bin/mcp.mjs"]
     }
   }
 }
 ```
 
-- Claude Code：`claude mcp add ios-mem -- node /Users/ruska/projects/dsh-plugins/dsh-ios-mem/bin/mcp.mjs`
+- Claude Code：`claude mcp add ios-mem -- node /Users/ruska/projects/dsh-plugins/dsh-ios-diag/bin/mcp.mjs`
 - Claude Desktop：写进 `claude_desktop_config.json` 的 `mcpServers`
 - Cursor：写进 `.cursor/mcp.json` 或全局 MCP 配置
 

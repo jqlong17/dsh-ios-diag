@@ -1,7 +1,7 @@
 // 此文件由 scripts/build-client.mjs 生成，不要直接改。
 // 改 client/*.js 后运行：npm run build:client
 window.__ModuleLoader__.load({
-  id: "dsh-ios-mem",
+  id: "dsh-ios-diag",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;
@@ -14,10 +14,10 @@ window.__ModuleLoader__.load({
 
     // 常量与主题：色板、窗口、采样间隔。
 
-      var NS = "dsh-ios-mem";
-      var PANEL_ID = "dsh-ios-mem";
+      var NS = "dsh-ios-diag";
+      var PANEL_ID = "dsh-ios-diag";
       var TAB_KIND = "ios-mem";
-      var ROUTE = "/dsh-ios-mem";
+      var ROUTE = "/dsh-ios-diag";
 
       var FG = "var(--dsw-alias-label-primary, inherit)";
       var FG2 = "var(--dsw-alias-label-secondary, #6b7280)";

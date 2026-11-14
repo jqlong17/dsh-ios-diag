@@ -44,11 +44,11 @@ export class MemorySampler {
   // ------------------------------------------------------------ 采样
 
   sampleFile() {
-    return join(tmpdir(), `dsh-ios-mem-sample-${this.tag}.json`)
+    return join(tmpdir(), `dsh-ios-diag-sample-${this.tag}.json`)
   }
 
   detailFile() {
-    return join(tmpdir(), `dsh-ios-mem-detail-${this.tag}.json`)
+    return join(tmpdir(), `dsh-ios-diag-detail-${this.tag}.json`)
   }
 
   async capture(pid, verbose) {

@@ -139,7 +139,7 @@ export async function recordTrace(sampler, payload = {}) {
     if (found) deviceName = found.name
   }
 
-  const output = join(tmpdir(), `dsh-ios-mem-${sampler.tag}.trace`)
+  const output = join(tmpdir(), `dsh-ios-diag-${sampler.tag}.trace`)
   await rm(output, { recursive: true, force: true })
   try {
     const record = await exec('xcrun', [

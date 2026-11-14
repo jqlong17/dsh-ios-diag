@@ -97,7 +97,7 @@ export function renderReport({ title, project, runId, runDir, summary, findings,
     advice.push('先看错误日志的上下文（`ios_log_query` 的 grep），确认是超时、重试还是被拒。')
   }
   advice.push(`原始数据在 \`${runDir}\`（events.jsonl / links.jsonl），可用 \`ios_events_query\` 按 id 查一跳。`)
-  advice.push('本报告由 dsh-ios-mem 生成；被测项目未做任何修改。')
+  advice.push('本报告由 dsh-ios-diag 生成；被测项目未做任何修改。')
 
   return [
     `# ${title}`,
@@ -105,7 +105,7 @@ export function renderReport({ title, project, runId, runDir, summary, findings,
     `> **项目**：${project}`,
     `> **时间**：${when}`,
     `> **设备**：${device || '模拟器'}`,
-    `> **采集**：dsh-ios-mem run ${runId}`,
+    `> **采集**：dsh-ios-diag run ${runId}`,
     `> **原始数据**：${runDir}`,
     '',
     '## 摘要',

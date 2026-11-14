@@ -113,7 +113,7 @@ export async function sampleHangs(sampler, payload = {}) {
   const seconds = clamp(Number(payload.seconds) || 3, 1, 10)
   if (!alive(pid)) throw new Error(`进程 ${pid} 不在运行，先让 App 起来再采样`)
 
-  const path = join(tmpdir(), `dsh-ios-mem-sample-${sampler.tag}-${Date.now()}.txt`)
+  const path = join(tmpdir(), `dsh-ios-diag-sample-${sampler.tag}-${Date.now()}.txt`)
   const result = await exec('sample', [String(pid), String(seconds), '-file', path], (seconds + 25) * 1000)
   if (result.code !== 0) {
     throw new Error((result.stderr || '').trim().slice(-300) || `sample 退出码 ${result.code}`)

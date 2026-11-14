@@ -101,7 +101,7 @@ export async function recordAllocations(sampler, payload = {}) {
     if (found) deviceName = found.name
   }
 
-  const output = join(tmpdir(), `dsh-ios-mem-alloc-${sampler.tag}.trace`)
+  const output = join(tmpdir(), `dsh-ios-diag-alloc-${sampler.tag}.trace`)
   await rm(output, { recursive: true, force: true })
   try {
     const record = await exec('xcrun', [

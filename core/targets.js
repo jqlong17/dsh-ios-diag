@@ -24,7 +24,7 @@ export async function displayNames(udid, tag = "") {
   try {
     const list = await exec('xcrun', ['simctl', 'listapps', udid], 15000)
     if (list.code !== 0) return names
-    const file = join(tmpdir(), `dsh-ios-mem-apps-${tag}-${udid.slice(0, 8)}.plist`)
+    const file = join(tmpdir(), `dsh-ios-diag-apps-${tag}-${udid.slice(0, 8)}.plist`)
     await writeFile(file, list.stdout)
     const json = await exec('plutil', ['-convert', 'json', '-o', '-', file], 10000)
     if (json.code !== 0) return names

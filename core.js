@@ -1,4 +1,4 @@
-// dsh-ios-mem · 共享内核入口
+// dsh-ios-diag · 共享内核入口
 //
 // 具体实现在 core/ 下按职责拆分（util / trace / targets / sampler / tools），
 // 这里只做 re-export，保证 index.js、bin/mcp.mjs、测试三处 import 不用改。

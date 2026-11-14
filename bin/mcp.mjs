@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// dsh-ios-mem · MCP server（stdio）
+// dsh-ios-diag · MCP server（stdio）
 //
 // 给 DSH 之外的 MCP 客户端用：Claude Code、Cursor、Codex，或另一个 harness。
 // 协议是 newline-delimited JSON-RPC 2.0，只实现 tools/* 这一层，不引入 SDK。
@@ -9,11 +9,11 @@
 // stdout 只走 JSON-RPC，日志一律写 stderr。
 import { MemorySampler, TOOL_SPECS, toolInputSchema } from '../core.js'
 
-const NAME = 'dsh-ios-mem'
+const NAME = 'dsh-ios-diag'
 const VERSION = '0.1.0'
 const DEFAULT_PROTOCOL = '2024-11-05'
 const KNOWN_PROTOCOLS = new Set(['2024-11-05', '2025-03-26', '2025-06-18'])
-const LOG = '[dsh-ios-mem-mcp]'
+const LOG = '[dsh-ios-diag-mcp]'
 
 const sampler = new MemorySampler()
 let closed = false

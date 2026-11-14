@@ -1,4 +1,4 @@
-# dsh-ios-mem
+# dsh-ios-diag
 
 > **一个 DeepSeek Harness（DSH）插件**，同时是一个 **stdio MCP server** 和一组命令行工具。
 > 做三件事：**在模拟器上把能测的尽量测完**、**给真机做一次尽可能全的取证**、**把结论变成可交接的报告**。
@@ -62,7 +62,7 @@
   "mcpServers": {
     "ios-mem": {
       "command": "node",
-      "args": ["/Users/ruska/projects/dsh-plugins/dsh-ios-mem/bin/mcp.mjs"]
+      "args": ["/Users/ruska/projects/dsh-plugins/dsh-ios-diag/bin/mcp.mjs"]
     }
   }
 }
@@ -219,7 +219,7 @@ scripts/         报告、交接、健康扫描、客户端构建、检查点
 ```bash
 npm test              # node --test，64 条
 npm run build:client  # client/*.js → client.js
-npm run health -- --target . --project dsh-ios-mem
+npm run health -- --target . --project dsh-ios-diag
 ```
 
 规范：改动走 spec → 失败测试 → 实现 → 全量测试 → 检查点（`scripts/record-checkpoint.sh`）。

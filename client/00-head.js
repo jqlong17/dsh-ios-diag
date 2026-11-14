@@ -1,9 +1,9 @@
 // 常量与主题：色板、窗口、采样间隔。
 
-  var NS = "dsh-ios-mem";
-  var PANEL_ID = "dsh-ios-mem";
+  var NS = "dsh-ios-diag";
+  var PANEL_ID = "dsh-ios-diag";
   var TAB_KIND = "ios-mem";
-  var ROUTE = "/dsh-ios-mem";
+  var ROUTE = "/dsh-ios-diag";
 
   var FG = "var(--dsw-alias-label-primary, inherit)";
   var FG2 = "var(--dsw-alias-label-secondary, #6b7280)";

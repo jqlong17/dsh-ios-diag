@@ -117,7 +117,7 @@ export function renderHealthReport({ project, target, files, oversize, lint, cov
   lines.push(`> **项目**：${project}`)
   lines.push(`> **目标目录**：${target}`)
   lines.push(`> **时间**：${generatedAt}`)
-  lines.push('> **工具**：dsh-ios-mem health-scan（只读；不修改目标仓库）')
+  lines.push('> **工具**：dsh-ios-diag health-scan（只读；不修改目标仓库）')
   lines.push('')
   lines.push('## 概览')
   lines.push('')

@@ -24,7 +24,7 @@ const body = parts
 const artifact = `// 此文件由 scripts/build-client.mjs 生成，不要直接改。
 // 改 client/*.js 后运行：npm run build:client
 window.__ModuleLoader__.load({
-  id: "dsh-ios-mem",
+  id: "dsh-ios-diag",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;
