@@ -49,3 +49,16 @@ test('阶梯上涨：涨完就平，给 watch 而不是泄漏', () => {
   assert.equal(result.level, 'watch')
   assert.ok(result.headline.includes('一次性'))
 })
+
+test('每条结论都带编号，且编号在字典里', async () => {
+  const { catalogFind } = await import('../core/catalog.js')
+  const cases = [
+    assessMemory({ samples: series([60, 60, 61]), marks: [], windowSec: 2 }),
+    assessMemory({ samples: series([60, 60, 60, 60, 60.5, 60.2, 60.4, 60.1, 60.3, 60.2]), marks: [], windowSec: 60 }),
+    assessMemory({ samples: series([400, 420, 425, 430, 435, 440, 445, 450]), marks: [], windowSec: 60 }),
+  ]
+  for (const result of cases) {
+    assert.ok(result.ruleId, result.headline)
+    assert.ok(catalogFind(result.ruleId), result.ruleId)
+  }
+})

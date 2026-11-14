@@ -116,7 +116,7 @@ export function renderReport({ title, project, runId, runDir, summary, findings,
     ...(assessment ? [
       '## 结论',
       '',
-      `**${assessment.headline}**`,
+      `**${assessment.headline}**${assessment.ruleId ? `　\`[${assessment.ruleId}]\`` : ''}`,
       '',
       ...(assessment.reasons || []).map((text) => `- ${text}`),
       '',

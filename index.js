@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { MemorySampler, MAX_BODY_BYTES, TOOL_SPECS, toolInputSchema } from './core.js'
 import { listRuns, RUNS_DIR } from './core/runs.js'
 import { generateReport } from './core/report-run.js'
+import { CATALOG } from './core/catalog.js'
 
 const ROUTE = '/dsh-ios-diag'
 const LOG = '[dsh-ios-diag]'
@@ -79,6 +80,8 @@ async function dispatch(op, payload) {
       return sampler.exportRun(payload)
     case 'runs':
       return { runs: await listRuns({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
+    case 'catalog':
+      return { modules: CATALOG }
     case 'preflight':
       return sampler.preflight(payload)
     case 'report': {

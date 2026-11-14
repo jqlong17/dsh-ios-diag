@@ -86,6 +86,9 @@ window.__ModuleLoader__.load({
           "panel.view.overview": "概览",
           "panel.view.memory": "内存",
           "panel.view.records": "记录",
+          "panel.view.catalog": "编号",
+          "panel.catalog.title": "判据编号",
+          "panel.catalog.note": "报告里引用 [A.1.3] 这样的编号，都在这里查。",
           "panel.preflight.title": "装真机前体检",
           "panel.preflight.run": "跑一次体检",
           "panel.preflight.running": "体检中…",
@@ -156,6 +159,9 @@ window.__ModuleLoader__.load({
           "panel.view.overview": "Overview",
           "panel.view.memory": "Memory",
           "panel.view.records": "Records",
+          "panel.view.catalog": "Index",
+          "panel.catalog.title": "Criterion index",
+          "panel.catalog.note": "Reports cite ids like [A.1.3]; look them up here.",
           "panel.preflight.title": "Pre-device check",
           "panel.preflight.run": "Run check",
           "panel.preflight.running": "checking…",
@@ -570,8 +576,12 @@ window.__ModuleLoader__.load({
             ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "14px 16px",
                 borderLeft: "3px solid " + LEVEL_COLOR[props.assessment.level],
                 boxShadow: "0 1px 2px rgba(0,0,0,.04), 0 6px 16px rgba(0,0,0,.03)" } },
-              e("div", { style: { fontSize: 17, fontWeight: 700, color: LEVEL_COLOR[props.assessment.level], letterSpacing: "-0.01em", lineHeight: 1.35 } },
-                props.assessment.headline),
+              e("div", { style: { display: "flex", alignItems: "baseline", gap: 8 } },
+                e("div", { style: { fontSize: 17, fontWeight: 700, color: LEVEL_COLOR[props.assessment.level], letterSpacing: "-0.01em", lineHeight: 1.35 } },
+                  props.assessment.headline),
+                props.assessment.ruleId
+                  ? e("span", { style: { fontFamily: MONO, fontSize: 9.5, color: FG3, border: "1px solid " + BORDER, borderRadius: 5, padding: "0 4px", flex: "0 0 auto" } }, props.assessment.ruleId)
+                  : null),
               e("div", { style: { display: "flex", flexDirection: "column", gap: 3, marginTop: 8 } },
                 (props.assessment.reasons || []).map(function (text, index) {
                   return e("div", { key: index, style: { fontSize: 11.5, color: FG2, lineHeight: 1.55, paddingLeft: 10, position: "relative" } },
@@ -657,6 +667,37 @@ window.__ModuleLoader__.load({
         );
       }
 
+
+      function CatalogView(props) {
+        var t = props.t;
+        var modules = props.catalog || [];
+        return e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
+          e("div", { style: { fontSize: 13, fontWeight: 600 } }, t("panel.catalog.title")),
+          e("div", { style: { fontSize: 10, color: FG3, lineHeight: 1.5 } }, t("panel.catalog.note")),
+          modules.length === 0
+            ? e("div", { style: { fontSize: 11, color: FG3 } }, t("panel.loading"))
+            : modules.map(function (module) {
+              return e("div", { key: module.id, style: { border: "1px solid " + BORDER, borderRadius: 12, padding: "10px 12px", background: BG1 } },
+                e("div", { style: { display: "flex", alignItems: "baseline", gap: 6, marginBottom: 4 } },
+                  e("span", { style: { fontFamily: MONO, fontSize: 10, color: FG3 } }, module.id),
+                  e("span", { style: { fontSize: 12, fontWeight: 650 } }, module.title),
+                  e("span", { style: { fontSize: 10, color: FG3, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, module.summary)),
+                (module.items || []).map(function (group) {
+                  return e("div", { key: group.id, style: { marginTop: 4 } },
+                    e("div", { style: { display: "flex", gap: 6, alignItems: "baseline" } },
+                      e("span", { style: { fontFamily: MONO, fontSize: 9.5, color: FG3 } }, group.id),
+                      e("span", { style: { fontSize: 11, fontWeight: 600, color: FG2 } }, group.title)),
+                    (group.items || []).map(function (item) {
+                      return e("div", { key: item.id, style: { display: "flex", gap: 6, alignItems: "baseline", paddingLeft: 12, marginTop: 2 } },
+                        e("span", { style: { fontFamily: MONO, fontSize: 9.5, color: FG3, flex: "0 0 auto" } }, item.id),
+                        e("span", { style: { fontSize: 11, color: FG } }, item.title),
+                        e("span", { style: { fontSize: 9.5, color: FG3, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, item.note || ""));
+                    }));
+                }));
+            })
+        );
+      }
+
       function Panel(props) {
         var t = props.t || function (key) { return key; };
         var rpc = props.rpc || callRpc;
@@ -691,6 +732,7 @@ window.__ModuleLoader__.load({
         var [preflightBusy, setPreflightBusy] = useState(false);
         var [handoff, setHandoff] = useState(null);
         var [assessment, setAssessment] = useState(null);
+        var [catalog, setCatalog] = useState([]);
 
         var sinceRef = useRef(0);
         var startedRef = useRef(null);
@@ -728,6 +770,13 @@ window.__ModuleLoader__.load({
         useEffect(function () {
           void loadRuns();
         }, []);
+
+        useEffect(function () {
+          if (view !== "catalog" || catalog.length) return;
+          rpc("catalog", {}).then(function (res) {
+            if (res && res.ok && res.value) setCatalog(res.value.modules || []);
+          });
+        }, [view, catalog.length]);
 
         function loadRuns() {
           return rpc("runs", { limit: 20 }).then(function (res) {
@@ -996,7 +1045,7 @@ window.__ModuleLoader__.load({
           ),
 
           e("div", { style: { display: "flex", gap: 2, background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: 3 } },
-            ["overview", "memory", "records"].map(function (key) {
+            ["overview", "memory", "records", "catalog"].map(function (key) {
               var active = view === key;
               return e("button", {
                 key: key,
@@ -1171,6 +1220,8 @@ window.__ModuleLoader__.load({
               onCopy: function () { if (handoff) copyText(handoff.text).then(function (ok) { setHandoff({ path: handoff.path, text: handoff.text, copied: ok }); }); },
             })
             : null,
+
+          view === "catalog" ? e(CatalogView, { t: t, catalog: catalog }) : null,
 
           view === "records"
             ? e(RecordsView, {

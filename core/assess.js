@@ -36,6 +36,7 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
   if (count < THRESHOLDS.minSamples || spanSec < THRESHOLDS.minSeconds) {
     return {
       level: 'inconclusive',
+      ruleId: 'A.2.4',
       headline: '还看不出结论',
       reasons: [`只采到 ${count} 个点、${Math.round(spanSec)} 秒，趋势不可靠（至少要 6 秒 5 个点）。`],
       next: ['先点「开始」，做你要测的操作，隔 10–30 秒再看。'],
@@ -88,21 +89,21 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
   if (max >= THRESHOLDS.highMB) {
     reasons.push(`峰值 ${stats.maxMB}MB，超过 ${THRESHOLDS.highMB}MB。`)
     next.push('先按类型看谁占得最多（内存 → 按类型），再对那个操作打点复测。')
-    return { level: 'bad', headline: `内存偏高：峰值 ${stats.maxMB}MB`, reasons, next, stats }
+    return { level: 'bad', ruleId: 'A.1.3', headline: `内存偏高：峰值 ${stats.maxMB}MB`, reasons, next, stats }
   }
 
   if (slope >= THRESHOLDS.leakPerMinute && recentSlope < THRESHOLDS.watchPerMinute) {
     reasons.push(`窗口内从 ${stats.minMB} 涨到 ${stats.maxMB}MB，但最近 15 秒已经平了。`)
     reasons.push('这是一次性上涨（比如一次渲染很重的内容），不是持续泄漏。')
     next.push('把同一个操作重复 2–3 次：每次都涨、都不回落，才算泄漏。')
-    return { level: 'watch', headline: '一次性上涨，之后平稳', reasons, next, stats }
+    return { level: 'watch', ruleId: 'A.2.2', headline: '一次性上涨，之后平稳', reasons, next, stats }
   }
 
   if (slope >= THRESHOLDS.leakPerMinute && spanSec < 20) {
     reasons.push(`按趋势算每分钟涨 ${stats.slopePerMinute}MB，但窗口只有 ${stats.spanSec} 秒。`)
     reasons.push('App 启动/首次加载也会这样涨，先别下泄漏结论。')
     next.push('录 30 秒以上、或在同一个操作上重复几次，再判断是不是只增不减。')
-    return { level: 'watch', headline: '涨得快，但窗口太短', reasons, next, stats }
+    return { level: 'watch', ruleId: 'A.2.4', headline: '涨得快，但窗口太短', reasons, next, stats }
   }
 
   if (slope >= THRESHOLDS.leakPerMinute) {
@@ -110,7 +111,7 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
     reasons.push(`窗口内 ${stats.minMB} → ${stats.maxMB}MB。`)
     next.push('重复同一个操作 3–5 次，看内存是否每次都不回落（这是泄漏的判据）。')
     next.push('对比最近一次报告：如果同一场景持续变高，把两次报告一起发给开发。')
-    return { level: 'bad', headline: `可能的内存泄漏：每分钟 +${stats.slopePerMinute}MB`, reasons, next, stats }
+    return { level: 'bad', ruleId: 'A.2.1', headline: `可能的内存泄漏：每分钟 +${stats.slopePerMinute}MB`, reasons, next, stats }
   }
 
   if (slope >= THRESHOLDS.watchPerMinute || max >= THRESHOLDS.watchMB) {
@@ -119,7 +120,7 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
       : `峰值 ${stats.maxMB}MB，超过 ${THRESHOLDS.watchMB}MB 的舒适区。`)
     reasons.push(`当前 ${stats.currentMB}MB，窗口内 ${stats.minMB}–${stats.maxMB}MB。`)
     next.push('再做一个更重的操作（滚动长列表、打开图片），看会不会继续涨。')
-    return { level: 'watch', headline: '值得留意：在涨，但还不算异常', reasons, next, stats }
+    return { level: 'watch', ruleId: 'A.2.1', headline: '值得留意：在涨，但还不算异常', reasons, next, stats }
   }
 
   const spread = max - min
@@ -135,6 +136,7 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
   next.push('换一个更重的场景再测一次（滚动长列表、连续发消息），静置平稳不代表交互没有问题。')
   return {
     level: 'ok',
+    ruleId: 'A.2.3',
     headline: marks.length ? '这个场景没有内存问题' : '静置平稳，没有泄漏迹象',
     reasons,
     next,
