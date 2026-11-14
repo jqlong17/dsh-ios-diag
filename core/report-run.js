@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseJsonl } from './query.js'
 import { summarizeRun, deriveFindings, renderReport } from './report.js'
+import { buildHandoff } from './handoff.js'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
 
@@ -41,5 +42,5 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
   const path = outFile || join(baseDir, `${stamp}-${slug}.md`)
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, markdown)
-  return { ok: true, path, runId, events: events.length, links: links.length }
+  return { ok: true, path, runId, events: events.length, links: links.length, handoff: buildHandoff(markdown, { reportPath: path, root: ROOT }) }
 }

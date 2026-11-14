@@ -42,6 +42,14 @@
           ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, marginTop: 6, wordBreak: "break-all" } }, pf.dir + "/report.md")
           : null),
 
+      props.handoff
+        ? e("div", { style: { background: BG2, borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 4 } },
+          e("div", { style: { fontSize: 11, fontWeight: 600, color: props.handoff.copied ? "#1f9d63" : WARN } },
+            props.handoff.copied ? t("panel.handoff.copied") : t("panel.handoff.failed")),
+          e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, props.handoff.path),
+          props.handoff.copied ? null : e("button", { onClick: props.onCopy, style: Object.assign({}, SMALL_BTN, { alignSelf: "flex-start" }) }, t("panel.handoff.copy")))
+        : null,
+
       props.runs && props.runs.filter(function (run) { return run.events > 0; }).length
         ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
           e("div", { style: { fontSize: 12, fontWeight: 600, color: FG2 } }, t("panel.records.title")),
@@ -62,6 +70,14 @@
         e("span", { style: { fontSize: 12, fontWeight: 600 } }, t("panel.records.title")),
         e("span", { style: { flex: 1 } }),
         e("button", { onClick: props.onExport, disabled: props.busy, style: SMALL_BTN }, t("panel.export"))),
+      props.handoff
+        ? e("div", { style: { background: BG2, borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 4 } },
+          e("div", { style: { fontSize: 11, fontWeight: 600, color: props.handoff.copied ? "#1f9d63" : WARN } },
+            props.handoff.copied ? t("panel.handoff.copied") : t("panel.handoff.failed")),
+          e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, props.handoff.path),
+          props.handoff.copied ? null : e("button", { onClick: props.onCopy, style: Object.assign({}, SMALL_BTN, { alignSelf: "flex-start" }) }, t("panel.handoff.copy")))
+        : null,
+
       props.runs.length === 0
         ? e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.6, padding: "8px 2px" } }, t("panel.records.empty"))
         : props.runs.filter(function (run) { return run.events > 0; }).map(function (run) {
@@ -109,6 +125,7 @@
     var [view, setView] = useState("overview");
     var [preflight, setPreflight] = useState(null);
     var [preflightBusy, setPreflightBusy] = useState(false);
+    var [handoff, setHandoff] = useState(null);
 
     var sinceRef = useRef(0);
     var startedRef = useRef(null);
@@ -172,7 +189,14 @@
         : "unknown";
       rpc("report", { runId: run.runId, project: project, title: "采集 " + run.runId }).then(function (res) {
         setRunBusy(false);
-        if (res && res.ok && res.value) setReportPath(res.value.path || "");
+        if (!res || !res.ok || !res.value) return;
+        setReportPath(res.value.path || "");
+        if (!res.value.handoff) return;
+        var text = res.value.handoff;
+        setHandoff({ path: res.value.path || "", text: text, copied: false });
+        copyText(text).then(function (ok) {
+          setHandoff({ path: res.value.path || "", text: text, copied: ok });
+        });
       });
     }
 
@@ -183,6 +207,28 @@
         setPreflightBusy(false);
         if (res && res.ok && res.value) setPreflight(res.value);
       });
+    }
+
+    function copyText(text) {
+      var legacy = function () {
+        try {
+          var area = document.createElement("textarea");
+          area.value = text;
+          area.style.position = "fixed";
+          area.style.opacity = "0";
+          document.body.appendChild(area);
+          area.select();
+          var ok = document.execCommand("copy");
+          document.body.removeChild(area);
+          return ok;
+        } catch (err) {
+          return false;
+        }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function () { return true; }).catch(legacy);
+      }
+      return Promise.resolve(legacy());
     }
 
     function shortClock(iso) {
@@ -547,6 +593,8 @@
           runs: runs,
           clock: shortClock,
           onReport: makeReport,
+          handoff: handoff,
+          onCopy: function () { if (handoff) copyText(handoff.text).then(function (ok) { setHandoff({ path: handoff.path, text: handoff.text, copied: ok }); }); },
         })
         : null,
 
