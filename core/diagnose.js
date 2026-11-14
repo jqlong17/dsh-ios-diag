@@ -8,7 +8,7 @@ import { assessHealth } from './health.js'
 const LEVEL_RANK = { ok: 0, watch: 1, bad: 2 }
 const LEVEL_LABEL = { ok: '正常', watch: '留意', bad: '需要处理' }
 
-export function aggregateDiagnose({ check, health, memory, device = null, includeDevice = true, markCount = 0 }) {
+export function aggregateDiagnose({ check, health, memory, device = null, deviceRecord = null, includeDevice = true, markCount = 0 }) {
   const modules = []
 
   if (check) {
@@ -61,9 +61,11 @@ export function aggregateDiagnose({ check, health, memory, device = null, includ
     skipped: !includeDevice || !device,
     headline: !includeDevice
       ? '未勾选真机（这次只跑模拟机）'
-      : device
-        ? `已连接 ${device.name}（真机录制可在「记录」里单独跑）`
-        : '勾选了真机，但没检测到在线设备（插上后补跑）',
+      : deviceRecord
+        ? `峰值 ${deviceRecord.peakMB}MB / 末值 ${deviceRecord.lastMB}MB（${deviceRecord.samples} 个点）`
+        : device
+          ? `已连接 ${device.name}（这次没录到数据）`
+          : '勾选了真机，但没检测到在线设备（插上后补跑）',
     ruleId: null,
   })
 
@@ -77,9 +79,10 @@ export function aggregateDiagnose({ check, health, memory, device = null, includ
   const runtimeBad = runtimeLevels.includes('bad')
   const codeBad = modules.some((module) => module.id === 'G' && module.level === 'bad')
 
+  const checkWarn = modules.some((module) => module.id === 'D' && module.level === 'watch')
   let headline = '这次没发现问题'
   if (runtimeBad) headline = '有需要处理的问题'
-  else if (codeBad) headline = '运行时正常，代码结构需要治理'
+  else if (codeBad) headline = checkWarn ? '运行时基本正常（体检有注意项），代码结构需要治理' : '运行时正常，代码结构需要治理'
   else if (worst === 'watch') headline = '能用，但有可改进项'
 
   return {
@@ -138,22 +141,25 @@ export function renderDiagnoseReport({ project, when, device, result, reportPath
 
 
 /// 一键诊断的交接消息：一条消息带三个模块的结论与两个子报告路径。
-export function buildDiagnoseHandoff({ result, reportPath, project, checks = null, healthPath = null, root, toolName = 'dsh-ios-diag' }) {
+export function buildDiagnoseHandoff({ result, reportPath, project, checks = null, healthPath = null, root, when, target, toolName = 'dsh-ios-diag' }) {
   const lines = []
   lines.push(`【诊断报告】${project}`)
   lines.push('')
   lines.push(`总体：${result.headline}`)
+  if (when) lines.push(`时间：${when}`)
+  if (target) lines.push(`项目：${target}`)
   lines.push('')
   for (const module of result.modules) {
     const tag = module.skipped ? `[${module.id}·跳过]` : `[${module.id}]`
-    lines.push(`- ${tag} ${module.name}：${module.headline}${module.ruleId ? `（${module.ruleId}）` : ''}`)
+    lines.push(`- ${tag} ${module.name}：${module.headline}${module.ruleId ? ` · ${module.ruleId}` : ''}`)
+    for (const reason of (module.reasons || []).slice(0, 2)) lines.push(`  - ${reason}`)
   }
   if (checks && checks.items) {
     const attention = checks.items.filter((item) => item.status !== 'pass')
     if (attention.length) {
+      lines.push('')
       lines.push('体检需要注意：')
       for (const item of attention) lines.push(`- ${item.title}（${item.status}）：${item.detail}`)
-      lines.push('')
     }
   }
   lines.push('')

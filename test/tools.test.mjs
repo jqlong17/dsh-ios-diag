@@ -2,9 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { TOOL_SPECS, toolInputSchema } from '../core.js'
 
-test('工具表：16 个工具，名字唯一', () => {
+test('工具表：17 个工具，名字唯一', () => {
   const names = TOOL_SPECS.map((spec) => spec.name)
-  assert.equal(names.length, 16)
+  assert.equal(names.length, 17)
   assert.equal(new Set(names).size, names.length)
 })
 

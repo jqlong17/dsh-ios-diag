@@ -125,7 +125,7 @@ export function assessMemory({ samples = [], marks = [], windowSec = 0, device =
 
   const spread = max - min
   const flat = spread <= Math.max(2, avg * THRESHOLDS.flatRatio)
-  reasons.push(`全程 ${stats.minMB}–${stats.maxMB}MB，波动 ${Math.round(spread * 10) / 10}MB。`)
+  reasons.push(`全程 ${stats.minMB}–${stats.maxMB}MB，波动${spread < 0.1 ? '小于 0.1' : ` ${Math.round(spread * 10) / 10}`}MB。`)
   if (flat) reasons.push('没有持续上涨，也没有回落异常。')
   if (marks.length) {
     reasons.push(`打了 ${marks.length} 个点，能对上你做的操作。`)

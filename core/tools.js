@@ -200,6 +200,20 @@ export const TOOL_SPECS = [
     },
   },
   {
+    name: 'ios_diagnose',
+    description: '一键诊断（约 15–25 秒）：体检 + 代码健康 + 模拟器内存采样 +（勾选时）真机录制，合成一份报告与一条交接消息。target 必须是项目绝对路径。',
+    properties: {
+      target: { type: 'string', description: '项目绝对路径（代码健康扫描用），例如 /Users/ruska/projects/dsh-pocket-ios' },
+      bundleId: { type: 'string', description: 'App 的 bundle id；不传则从运行中的模拟器 App 里取' },
+      includeDevice: { type: 'boolean', description: '是否包含真机（默认 true；没连设备会自动跳过）' },
+      sampleSeconds: { type: 'number', description: '模拟器内存采样秒数，8–30，默认 12' },
+      deviceSeconds: { type: 'number', description: '真机录制秒数，默认 10' },
+    },
+    async handler(sampler, args) {
+      return sampler.diagnose(args)
+    },
+  },
+  {
     name: 'ios_device_log',
     description: '真机日志（xctrace Logging 模板，3–30 秒）：录一段系统日志，按消息子串过滤后返回时间/进程/级别/子系统。走网络连接也能用，不需要 USB。',
     properties: {

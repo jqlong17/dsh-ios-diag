@@ -14,7 +14,7 @@ import { scanHealth } from './core/health-run.js'
 import { assessHealth } from './core/health.js'
 import { aggregateDiagnose, renderDiagnoseReport, buildDiagnoseHandoff } from './core/diagnose.js'
 import { assessMemory } from './core/assess.js'
-import { physicalDevices } from './core/trace.js'
+import { runDiagnose } from './core/diagnose-run.js'
 import { appendDiagnose, listDiagnoses } from './core/diagnose-store.js'
 import { writeFile, mkdir } from 'node:fs/promises'
 import { parseCheckReport, buildCheckHandoff } from './core/handoff.js'
@@ -108,102 +108,8 @@ async function dispatch(op, payload) {
       return sampler.preflight(payload)
     case 'diagnoses':
       return { rows: await listDiagnoses({ limit: Math.min(50, Math.max(1, Number(payload.limit) || 20)) }) }
-    case 'diagnose': {
-      const bundleId = String(payload.bundleId || (sampler.session.target && sampler.session.target.bundleId) || '')
-      let bundleIdOverride = bundleId
-      // 项目路径必须由用户给：不猜 cwd，避免「测错仓库还以为是这个」。
-      const target = String(payload.target || '').trim()
-      if (!target) throw new Error('请填写项目路径（代码健康扫描要指向具体仓库）')
-      if (!target.startsWith('/')) throw new Error('项目路径要用绝对路径')
-      const project = target.split('/').filter(Boolean).pop()
-      // 没给 bundleId 时，从正在运行的模拟器 App 里找一个，避免体检直接失败。
-      if (!bundleId) {
-        try {
-          const listed = await sampler.listTargets({})
-          const firstApp = (listed.devices || []).flatMap((device) => device.apps || [])[0]
-          if (firstApp) bundleIdOverride = firstApp.bundleId
-        } catch (error) {
-          // 找不到就保持为空，体检会标「未跑」
-        }
-      }
-      let check = null
-      let health = null
-      try {
-        check = await sampler.preflight({ bundleId: bundleIdOverride })
-      } catch (error) {
-        check = null
-      }
-      try {
-        health = await scanHealth({ target, project })
-      } catch (error) {
-        health = null
-      }
-      const includeDevice = payload.includeDevice !== false
-      let device = null
-      try {
-        const devices = await physicalDevices()
-        device = devices.find((item) => item.online) || null
-      } catch (error) {
-        device = null
-      }
-      // 没在采样就自动采一小段：一键诊断不应该让用户先去别处点「开始」。
-      let memory = sampler.session.samples.length
-        ? assessMemory({ samples: sampler.session.samples, marks: sampler.session.marks })
-        : null
-      if (!memory) {
-        try {
-          const listed = await sampler.listTargets({})
-          const firstApp = (listed.devices || []).flatMap((device) => (device.apps || []).map((app) => ({ ...app, udid: device.udid })))[0]
-          if (firstApp) {
-            const sampleSeconds = Math.min(30, Math.max(8, Number(payload.sampleSeconds) || 12))
-            await sampler.start({ udid: firstApp.udid, bundleId: firstApp.bundleId, pid: firstApp.pid, appName: firstApp.name, intervalMs: 500 })
-            await new Promise((resolve) => setTimeout(resolve, sampleSeconds * 1000))
-            sampler.stop()
-            memory = assessMemory({ samples: sampler.session.samples, marks: sampler.session.marks })
-          }
-        } catch (error) {
-          memory = null
-        }
-      }
-      const result = aggregateDiagnose({ check, health, memory, device: includeDevice ? device : null, includeDevice })
-      const now = new Date()
-      const pad = (value) => String(value).padStart(2, '0')
-      // 精确到秒：同一分钟点两次也不会覆盖上一条。
-      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-      const when = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
-      const dir = join(ROOT, 'docs', 'measurements', project)
-      await mkdir(dir, { recursive: true })
-      const path = join(dir, `${stamp}-diagnose.md`)
-      const reportPaths = {
-        体检: check ? join(check.dir, 'report.md') : null,
-        代码健康: health ? health.path : null,
-      }
-      const markdown = renderDiagnoseReport({
-        project, when,
-        device: sampler.session.target ? sampler.session.target.deviceName : '模拟器',
-        result, reportPaths, checks: check,
-      })
-      await writeFile(path, markdown)
-      const handoff = buildDiagnoseHandoff({ result, reportPath: path, project, checks: check, healthPath: reportPaths.代码健康, root: ROOT })
-      // 每按一次 = 一条不可改记录；Markdown 只是它的视图。
-      const record = {
-        id: `diag-${stamp}`,
-        at: now.toISOString(),
-        project,
-        target,
-        device: sampler.session.target ? sampler.session.target.deviceName : '模拟器',
-        level: result.level,
-        headline: result.headline,
-        subline: result.subline,
-        modules: result.modules,
-        reportPath: path,
-        healthPath: reportPaths.代码健康,
-        checkPath: reportPaths.体检,
-        handoff,
-      }
-      await appendDiagnose(record)
-      return { ok: true, path, handoff, result, reportPaths, record }
-    }
+    case 'diagnose':
+      return runDiagnose(sampler, payload)
     case 'reportNow': {
       const exported = await sampler.exportRun({ lastSeconds: 120 })
       return generateReport({ dir: exported.dir })
