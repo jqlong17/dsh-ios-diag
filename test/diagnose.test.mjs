@@ -49,3 +49,14 @@ test('诊断交接：体检需要注意的项要列出来', async () => {
   assert.ok(text.includes('构建类型（warn）：Debug 构建'))
   assert.ok(!text.includes('进程在跑（pass）'))
 })
+
+test('结论副标题：连上的真机写「已连接」，不再误写跳过', () => {
+  const result = aggregateDiagnose({
+    check: { verdict: 'warn', items: [] },
+    health: null,
+    memory: null,
+    device: { name: 'iPhone' },
+  })
+  assert.ok(result.subline.includes('真机：已连接'))
+  assert.ok(result.subline.includes('内存：跳过'))
+})

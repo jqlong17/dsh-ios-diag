@@ -63,7 +63,7 @@ export function aggregateDiagnose({ check, health, memory, device = null, includ
   return {
     level: worst,
     headline: worst === 'bad' ? '有需要处理的问题' : worst === 'watch' ? '能用，但有可改进项' : '这次没发现问题',
-    subline: modules.map((module) => `${module.name}：${LEVEL_LABEL[module.level] || '跳过'}`).join(' · '),
+    subline: modules.map((module) => `${module.name}：${module.skipped ? '跳过' : (LEVEL_LABEL[module.level] || '已连接')}`).join(' · '),
     modules,
     markCount,
   }
