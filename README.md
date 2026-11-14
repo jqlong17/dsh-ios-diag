@@ -205,6 +205,9 @@ scripts/         报告、交接、健康扫描、客户端构建、检查点
 真机 UI 自动化会安装 `WebDriverAgentRunner`。它的 XCTest 会话会**接管输入事件**，
 典型副作用是 **系统键盘弹不出来**（2026-11-14 真实踩坑，卸载插件后仍存在，重启手机才恢复）。
 
+本插件的诊断能力**不依赖 WDA**：真机走 `xctrace`（Activity Monitor / Allocations / Logging），
+模拟器走 `simctl` + `footprint`，网络走 `tcpdump`。WDA 只在「真机 UI 自动化（点按）」时才需要。
+
 规则：
 
 - 用完就删，不要常驻：`./scripts/uninstall-wda.sh [udid]`
