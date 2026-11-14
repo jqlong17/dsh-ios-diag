@@ -72,6 +72,18 @@ npm run handoff -- --report docs/measurements/dsh-pocket-ios/2026-11-14-1425-str
 - 不修改被测仓库的任何文件——包括它的基线文档。压测结果写在本仓库 `docs/measurements/`。
 - 场景切换靠 App 自己支持的环境变量（如 `DSH_STRESS`），工具只负责 `simctl launch`，不改 App 代码。
 
+## 代码健康
+
+对任意仓库只读扫描（不写目标仓库），报告落在本仓库：
+
+```bash
+npm run health -- --target /path/to/repo --project <slug>
+```
+
+- 数行数（> 400 行/文件，规范阈值）
+- 跑 SwiftLint（装了才跑，用本仓库的 `configs/swiftlint.yml`）
+- 输出 `docs/measurements/<项目>/<时间>-health.md`；`--gate` 时有 Error 级违规退出码 1
+
 ## 结构
 
 | 位置 | 作用 |

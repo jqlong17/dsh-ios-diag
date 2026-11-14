@@ -1,0 +1,22 @@
+# 健康扫描用的 SwiftLint 配置（只读扫描，不写进目标仓库）
+# 只开结构性规则，避免风格噪音淹没「文件/类型太大」这种真问题。
+only_rules:
+  - file_length
+  - type_body_length
+  - function_body_length
+  - cyclomatic_complexity
+  - force_unwrapping
+  - todo
+
+file_length:
+  warning: 400
+  error: 600
+type_body_length:
+  warning: 150
+  error: 300
+function_body_length:
+  warning: 40
+  error: 100
+cyclomatic_complexity:
+  warning: 15
+  error: 25
