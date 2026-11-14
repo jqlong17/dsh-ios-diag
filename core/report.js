@@ -89,7 +89,7 @@ function table(summary) {
   return ['| 指标 | 值 |', '| --- | --- |', ...rows.map(([key, value]) => `| ${key} | ${value} |`)].join('\n')
 }
 
-export function renderReport({ title, project, runId, runDir, summary, findings, device, time }) {
+export function renderReport({ title, project, runId, runDir, summary, findings, assessment, device, time }) {
   const now = new Date()
   const pad = (value) => String(value).padStart(2, '0')
   // 用本地时间：报告是给人看的，ISO/UTC 会让人以为是另一天。
@@ -113,6 +113,18 @@ export function renderReport({ title, project, runId, runDir, summary, findings,
     `> **采集**：dsh-ios-diag run ${runId}`,
     `> **原始数据**：${runDir}`,
     '',
+    ...(assessment ? [
+      '## 结论',
+      '',
+      `**${assessment.headline}**`,
+      '',
+      ...(assessment.reasons || []).map((text) => `- ${text}`),
+      '',
+      ...(assessment.next && assessment.next.length
+        ? ['下一步：', '', ...assessment.next.map((text, index) => `${index + 1}. ${text}`), '']
+        : []),
+    ] : []),
+
     '## 摘要',
     '',
     `- 事件 ${Object.values(summary.counts).reduce((sum, value) => sum + value, 0)} 条；内存样本 ${summary.counts.mem_sample || 0} 个，打点 ${summary.counts.mark || 0} 个。`,

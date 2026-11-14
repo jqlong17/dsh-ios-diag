@@ -19,6 +19,7 @@ import { exportRun } from './events.js'
 import { queryRun } from './query.js'
 import { analyzePcap } from './net.js'
 import { runPreflight } from './preflight.js'
+import { assessMemory } from './assess.js'
 
 export class MemorySampler {
   constructor() {
@@ -307,6 +308,7 @@ export class MemorySampler {
       startedAt: this.session.startedAt,
       seq: this.session.seq,
       samples,
+      assessment: assessMemory({ samples: this.session.samples, marks: this.session.marks }),
       marks: this.session.marks.slice(-50),
       error: this.session.error,
       mode: this.session.mode,
@@ -343,6 +345,7 @@ export class MemorySampler {
       samples: samples.length,
       marks: this.session.marks.slice(-10),
       summary,
+      assessment: assessMemory({ samples: this.session.samples, marks: this.session.marks, windowSec }),
       topCategories: top,
       hint: this.session.mode === 'trace'
         ? '这是导入的真机录制，不是实时。类别/镜像下钻需要 Allocations 模板，本版没做。'

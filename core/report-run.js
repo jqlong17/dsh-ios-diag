@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { parseJsonl } from './query.js'
 import { summarizeRun, deriveFindings, renderReport } from './report.js'
 import { buildHandoff } from './handoff.js'
+import { assessMemory } from './assess.js'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
 
@@ -23,6 +24,11 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
   const deviceLabel = device || (meta.deviceName ? `${meta.deviceName}（${meta.mode === 'trace' ? '真机' : '模拟器'}）` : undefined)
   const summary = summarizeRun(events, links, runId)
   const findings = deriveFindings(summary, events, links)
+  const samples = events
+    .filter((event) => event.type === 'mem_sample' && Number.isFinite(event.attrs && event.attrs.totalMB))
+    .map((event) => ({ t: Date.parse(event.ts) || 0, total: event.attrs.totalMB * 1048576 }))
+  const marks = events.filter((event) => event.type === 'mark')
+  const assessment = assessMemory({ samples, marks })
   const markdown = renderReport({
     title: title || `采集 ${runId}`,
     project,
@@ -30,6 +36,7 @@ export async function generateReport({ dir, project = 'unknown', title, slug = '
     runDir: dir,
     summary,
     findings,
+    assessment,
     device: deviceLabel,
     time,
   })

@@ -8,6 +8,8 @@
     fontSize: 11, borderRadius: 8, padding: "4px 10px", cursor: "pointer"
   };
 
+  var LEVEL_COLOR = { ok: "#1f9d63", watch: WARN, bad: DANGER, inconclusive: FG3 };
+
   var STATUS_COLOR = { pass: "#1f9d63", warn: "#c78500", fail: DANGER, unknown: FG3 };
   var STATUS_ICON = { pass: "✓", warn: "!", fail: "✕", unknown: "?" };
 
@@ -16,12 +18,26 @@
     var pf = props.preflight;
     return e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
 
-      props.verdict
-        ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "12px 14px", borderLeft: "3px solid " + props.verdict.color,
+      props.assessment
+        ? e("div", { style: { background: BG2, border: "1px solid " + BORDER, borderRadius: 14, padding: "14px 16px",
+            borderLeft: "3px solid " + LEVEL_COLOR[props.assessment.level],
             boxShadow: "0 1px 2px rgba(0,0,0,.04), 0 6px 16px rgba(0,0,0,.03)" } },
-          e("div", { style: { fontSize: 26, fontWeight: 700, fontFamily: MONO, color: props.verdict.color, letterSpacing: "-0.03em" } }, props.verdict.value),
-          e("div", { style: { fontSize: 11.5, color: FG2, marginTop: 3 } }, props.verdict.text))
-        : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, borderRadius: 10, padding: "10px 12px" } }, t("panel.overview.empty")),
+          e("div", { style: { fontSize: 17, fontWeight: 700, color: LEVEL_COLOR[props.assessment.level], letterSpacing: "-0.01em", lineHeight: 1.35 } },
+            props.assessment.headline),
+          e("div", { style: { display: "flex", flexDirection: "column", gap: 3, marginTop: 8 } },
+            (props.assessment.reasons || []).map(function (text, index) {
+              return e("div", { key: index, style: { fontSize: 11.5, color: FG2, lineHeight: 1.55, paddingLeft: 10, position: "relative" } },
+                e("span", { style: { position: "absolute", left: 0, color: FG3 } }, "·"),
+                text);
+            })),
+          props.assessment.next && props.assessment.next.length
+            ? e("div", { style: { marginTop: 10, paddingTop: 8, borderTop: "1px dashed " + BORDER, display: "flex", flexDirection: "column", gap: 3 } },
+              e("div", { style: { fontSize: 10, fontWeight: 600, color: FG3, marginBottom: 2 } }, t("panel.assess.next")),
+              props.assessment.next.map(function (text, index) {
+                return e("div", { key: index, style: { fontSize: 11, color: FG2, lineHeight: 1.55 } }, (index + 1) + ". " + text);
+              }))
+            : null)
+        : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, border: "1px dashed " + BORDER, borderRadius: 12, padding: "12px 14px" } }, t("panel.overview.empty")),
 
       e("div", { style: { border: "1px solid " + BORDER, borderRadius: 12, padding: "12px 14px", background: BG1 } },
         e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
@@ -126,6 +142,7 @@
     var [preflight, setPreflight] = useState(null);
     var [preflightBusy, setPreflightBusy] = useState(false);
     var [handoff, setHandoff] = useState(null);
+    var [assessment, setAssessment] = useState(null);
 
     var sinceRef = useRef(0);
     var startedRef = useRef(null);
@@ -263,6 +280,7 @@
             setError(value.error || "");
             setMarks(value.marks || []);
             setSummary(value.summary || null);
+            setAssessment(value.assessment || null);
             if (value.intervalMs) setIntervalMs(value.intervalMs);
 
             if (startedRef.current === null) {
@@ -520,6 +538,14 @@
         statCell(t("panel.samples"), windowStats ? String(windowStats.count) : "0", FG)
       ),
 
+      assessment
+        ? e("div", { style: { display: "flex", gap: 6, alignItems: "baseline", background: BG2, border: "1px solid " + BORDER, borderRadius: 10, padding: "7px 10px" } },
+          e("span", { style: { width: 6, height: 6, borderRadius: 99, background: LEVEL_COLOR[assessment.level], flex: "0 0 auto", marginTop: 4 } }),
+          e("span", { style: { fontSize: 11, color: FG2, lineHeight: 1.5 } },
+            e("strong", { style: { color: FG } }, assessment.headline),
+            assessment.reasons && assessment.reasons[0] ? " · " + assessment.reasons[0] : ""))
+        : null,
+
       e("div", { style: { display: "flex", alignItems: "center", gap: 2, borderBottom: "1px solid " + BORDER } },
         [["category", t("panel.category")], ["image", t("panel.image")], ["tag", t("panel.tag")]].map(function (pair) {
           var key = pair[0];
@@ -586,7 +612,7 @@
       view === "overview"
         ? e(OverviewView, {
           t: t,
-          verdict: verdict,
+          assessment: assessment,
           preflight: preflight,
           preflightBusy: preflightBusy,
           onPreflight: runPreflightCheck,
