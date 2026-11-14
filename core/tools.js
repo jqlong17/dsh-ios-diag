@@ -166,6 +166,19 @@ export const TOOL_SPECS = [
     },
   },
   {
+    name: 'ios_events_query',
+    description: '查一份导出的 run：给 id（如 mem:12）或 rpcId，返回它一跳内的对象与链接；不给条件则返回这份 run 的索引。链接分 facts（method=id 的事实）与 inferred（method=time 的推断）。',
+    properties: {
+      runId: { type: 'string', description: 'run 目录名，如 20261114-1603；不传则用最新一份。' },
+      dir: { type: 'string', description: 'run 目录的绝对路径（优先级高于 runId）。' },
+      id: { type: 'string', description: '事件 id，带前缀：mem: / mark: / log: / stack:。' },
+      rpcId: { type: 'string', description: '按 rpcId 查（需要网络对象，当前通常为空）。' },
+    },
+    async handler(sampler, args) {
+      return sampler.queryRun(args)
+    },
+  },
+  {
     name: 'ios_mem_launch',
     description: '在指定模拟器里启动一个 App（simctl launch），方便先起 App 再采样。',
     properties: {

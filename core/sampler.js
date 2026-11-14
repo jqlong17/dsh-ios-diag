@@ -15,6 +15,7 @@ import { physicalDevices, recordTrace } from './trace.js'
 import { recordAllocations } from './allocations.js'
 import { queryLogs, sampleHangs } from './logs.js'
 import { exportRun } from './events.js'
+import { queryRun } from './query.js'
 
 export class MemorySampler {
   constructor() {
@@ -374,6 +375,10 @@ export class MemorySampler {
 
   exportRun(payload = {}) {
     return exportRun(this, payload)
+  }
+
+  queryRun(payload = {}) {
+    return queryRun(payload)
   }
 
   launch(payload) {
