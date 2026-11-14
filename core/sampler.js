@@ -17,6 +17,7 @@ import { queryLogs, sampleHangs } from './logs.js'
 import { exportRun } from './events.js'
 import { queryRun } from './query.js'
 import { analyzePcap } from './net.js'
+import { runPreflight } from './preflight.js'
 
 export class MemorySampler {
   constructor() {
@@ -384,6 +385,10 @@ export class MemorySampler {
 
   analyzePcap(payload = {}) {
     return analyzePcap(payload)
+  }
+
+  preflight(payload = {}) {
+    return runPreflight(this, payload)
   }
 
   launch(payload) {

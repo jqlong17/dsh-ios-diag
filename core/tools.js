@@ -189,6 +189,17 @@ export const TOOL_SPECS = [
     },
   },
   {
+    name: 'ios_preflight',
+    description: '装真机前的体检：对模拟器里的 App 跑 6 项检查（进程/构建类型/内存/日志错误/近期崩溃/容器大小），返回 pass/warn/fail 清单和 report.md 路径。每项都带判定依据。',
+    properties: {
+      bundleId: { type: 'string', description: 'App 的 bundle id。' },
+      udid: { type: 'string', description: '模拟器 udid；不传则自动找。' },
+    },
+    async handler(sampler, args) {
+      return sampler.preflight(args)
+    },
+  },
+  {
     name: 'ios_mem_launch',
     description: '在指定模拟器里启动一个 App（simctl launch），方便先起 App 再采样。',
     properties: {
