@@ -39,7 +39,7 @@ window.__ModuleLoader__.load({
     // 文案（zh/en）。新增 key 必须两边都加，否则英文界面会露出中文。
 
       var zh = {
-        "tab.title": "内存",
+        "tab.title": "诊断",
         "guide.title": "iOS 内存",
         "guide.description": "模拟器内存实时趋势：时间轴 + 类别/镜像/区域下钻",
         "panel.status.idle": "未采样",
@@ -62,14 +62,14 @@ window.__ModuleLoader__.load({
         "panel.peak": "峰值",
         "panel.delta": "变化",
         "panel.samples": "样本",
-        "panel.category": "类别",
-        "panel.image": "镜像",
-        "panel.tag": "区域标签",
+        "panel.category": "按类型",
+        "panel.image": "按模块",
+        "panel.tag": "按系统区域",
         "panel.detailNow": "明细为当前时刻，不是选中样本",
         "panel.imageNote": "只统计带二进制路径的 region",
         "panel.loading": "读取明细…",
         "panel.empty.title": "还没有样本",
-        "panel.empty.body": "先在模拟器里跑起 App，选中目标后点「开始」；1 秒一个点。",
+        "panel.empty.body": "① 在模拟器里打开 App  ② 选目标  ③ 点「开始」  ④ 做你要测的操作，顺手「打点」",
         "panel.noTargets": "没有检测到正在运行的模拟器 App",
         "panel.noTargetsBody": "启动模拟器并打开 App，然后点刷新。真机进程无法被宿主 attach，这里只支持模拟器。",
         "panel.filterOn": "只看",
@@ -82,11 +82,30 @@ window.__ModuleLoader__.load({
         "panel.noDetail": "还没有明细：先开始采样",
         "panel.close": "关闭",
         "panel.hover.total": "总计",
-        "panel.hover.none": "把鼠标移到曲线上看某一秒的结构",
+        "panel.hover.none": "把鼠标移到曲线上，能看到那一秒是谁在占内存",
+          "panel.view.overview": "概览",
+          "panel.view.memory": "内存",
+          "panel.view.records": "记录",
+          "panel.preflight.title": "装真机前体检",
+          "panel.preflight.run": "跑一次体检",
+          "panel.preflight.running": "体检中…",
+          "panel.preflight.empty": "还没跑过：先在模拟器里打开 App，再点上面按钮。",
+          "panel.preflight.report": "体检报告",
+          "panel.overview.empty": "还没有采样。去「内存」选目标、点开始，回来这里看结论。",
+          "panel.records.title": "历史记录",
+          "panel.records.empty": "还没有导出过。采样后点「导出」就会出现在这里。",
+          "panel.records.open": "报告",
+          "panel.records.points": "个点",
+          "panel.hint.category": "点一行 → 上面的图只显示这一类",
+          "panel.hint.dim": "这里是当前时刻的明细，不是历史某一秒",
+          "panel.verdict.ok": "正常",
+          "panel.verdict.watch": "留意",
+          "panel.verdict.high": "内存偏高（>400MB）",
+          "panel.verdict.rising": "最近在涨",
       };
 
       var en = {
-        "tab.title": "Memory",
+        "tab.title": "Diagnostics",
         "guide.title": "iOS memory",
         "guide.description": "Live simulator memory trend with category / image / region drill-down",
         "panel.status.idle": "idle",
@@ -109,14 +128,14 @@ window.__ModuleLoader__.load({
         "panel.peak": "Peak",
         "panel.delta": "Delta",
         "panel.samples": "Samples",
-        "panel.category": "Category",
-        "panel.image": "Image",
-        "panel.tag": "Region tag",
+        "panel.category": "By kind",
+        "panel.image": "By module",
+        "panel.tag": "By region",
         "panel.detailNow": "Detail is for right now, not the selected sample",
         "panel.imageNote": "Path-backed regions only",
         "panel.loading": "Loading detail…",
         "panel.empty.title": "No samples yet",
-        "panel.empty.body": "Launch the app in a simulator, pick a target, then press Start. One point per second.",
+        "panel.empty.body": "① Open the app in a simulator  ② Pick a target  ③ Press Start  ④ Do the action, and tap Mark",
         "panel.noTargets": "No running simulator app found",
         "panel.noTargetsBody": "Boot a simulator and open the app, then refresh. Physical-device processes cannot be attached from the host.",
         "panel.filterOn": "Only",
@@ -130,6 +149,25 @@ window.__ModuleLoader__.load({
         "panel.close": "Close",
         "panel.hover.total": "total",
         "panel.hover.none": "Hover the curve to inspect one second",
+          "panel.view.overview": "Overview",
+          "panel.view.memory": "Memory",
+          "panel.view.records": "Records",
+          "panel.preflight.title": "Pre-device check",
+          "panel.preflight.run": "Run check",
+          "panel.preflight.running": "checking…",
+          "panel.preflight.empty": "Not run yet: open the app in a simulator, then press the button.",
+          "panel.preflight.report": "Check report",
+          "panel.overview.empty": "No samples yet. Go to Memory, pick a target and press Start.",
+          "panel.records.title": "History",
+          "panel.records.empty": "Nothing exported yet. Export after sampling and it appears here.",
+          "panel.records.open": "Report",
+          "panel.records.points": "points",
+          "panel.hint.category": "Click a row to isolate it in the chart",
+          "panel.hint.dim": "This is the current snapshot, not a past second",
+          "panel.verdict.ok": "normal",
+          "panel.verdict.watch": "watch",
+          "panel.verdict.high": "High memory (>400MB)",
+          "panel.verdict.rising": "Rising lately",
       };
 
     // RPC + 纯工具：单位换算、时间格式、类别取值、「其他」倒推、降采样。
@@ -503,6 +541,80 @@ window.__ModuleLoader__.load({
 
       // ------------------------------------------------------------ 面板
 
+
+      var SMALL_BTN = {
+        appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2,
+        fontSize: 10, borderRadius: 7, padding: "3px 9px", cursor: "pointer"
+      };
+
+      var STATUS_COLOR = { pass: "#1f9d63", warn: "#c78500", fail: DANGER, unknown: FG3 };
+      var STATUS_ICON = { pass: "✓", warn: "!", fail: "✕", unknown: "?" };
+
+      function OverviewView(props) {
+        var t = props.t;
+        var pf = props.preflight;
+        return e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
+
+          props.verdict
+            ? e("div", { style: { background: BG2, borderRadius: 10, padding: "10px 12px", borderLeft: "3px solid " + props.verdict.color } },
+              e("div", { style: { fontSize: 20, fontWeight: 700, fontFamily: MONO, color: props.verdict.color, letterSpacing: "-0.02em" } }, props.verdict.value),
+              e("div", { style: { fontSize: 11, color: FG2, marginTop: 2 } }, props.verdict.text))
+            : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, borderRadius: 10, padding: "10px 12px" } }, t("panel.overview.empty")),
+
+          e("div", { style: { border: "1px solid " + BORDER, borderRadius: 10, padding: "10px 12px", background: BG1 } },
+            e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+              e("span", { style: { fontSize: 12, fontWeight: 600 } }, t("panel.preflight.title")),
+              e("span", { style: { flex: 1 } }),
+              e("button", { onClick: props.onPreflight, disabled: props.preflightBusy, style: SMALL_BTN },
+                props.preflightBusy ? t("panel.preflight.running") : t("panel.preflight.run"))),
+            pf && pf.items
+              ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3, marginTop: 8 } },
+                pf.items.map(function (item) {
+                  return e("div", { key: item.id, style: { display: "flex", gap: 6, alignItems: "baseline" } },
+                    e("span", { style: { color: STATUS_COLOR[item.status] || FG3, fontSize: 11, width: 10, flex: "0 0 auto" } }, STATUS_ICON[item.status] || "?"),
+                    e("span", { style: { fontSize: 11, color: FG, flex: "0 0 auto" } }, item.title),
+                    e("span", { style: { fontSize: 10, color: FG3, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, item.detail));
+                }))
+              : e("div", { style: { fontSize: 10, color: FG3, marginTop: 6, lineHeight: 1.5 } }, t("panel.preflight.empty")),
+            pf && pf.dir
+              ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, marginTop: 6, wordBreak: "break-all" } }, pf.dir + "/report.md")
+              : null),
+
+          props.runs && props.runs.length
+            ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
+              e("div", { style: { fontSize: 10, color: FG3 } }, t("panel.records.title")),
+              props.runs.slice(0, 3).map(function (run) {
+                return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 7, padding: "4px 7px" } },
+                  e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.clock(run.from)),
+                  e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.events + " " + t("panel.records.points")),
+                  e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
+              }))
+            : null
+        );
+      }
+
+      function RecordsView(props) {
+        var t = props.t;
+        return e("div", { style: { display: "flex", flexDirection: "column", gap: 6 } },
+          e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+            e("span", { style: { fontSize: 12, fontWeight: 600 } }, t("panel.records.title")),
+            e("span", { style: { flex: 1 } }),
+            e("button", { onClick: props.onExport, disabled: props.busy, style: SMALL_BTN }, t("panel.export"))),
+          props.runs.length === 0
+            ? e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.6, padding: "8px 2px" } }, t("panel.records.empty"))
+            : props.runs.filter(function (run) { return run.events > 0; }).map(function (run) {
+              return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 8, padding: "5px 8px" } },
+                e("span", { style: { fontSize: 10, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, props.clock(run.from)),
+                e("span", { style: { fontSize: 11, color: FG, flex: "0 0 auto" } }, run.mode === "trace" ? "回放" : "采样"),
+                e("span", { style: { fontSize: 10, color: FG3, flex: 1 } }, run.events + " " + t("panel.records.points") + (run.hasReport ? " · 有报告" : "")),
+                e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
+            }),
+          props.reportPath
+            ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, props.reportPath)
+            : null
+        );
+      }
+
       function Panel(props) {
         var t = props.t || function (key) { return key; };
         var rpc = props.rpc || callRpc;
@@ -532,6 +644,9 @@ window.__ModuleLoader__.load({
         var [showRuns, setShowRuns] = useState(true);
         var [reportPath, setReportPath] = useState("");
         var [runBusy, setRunBusy] = useState(false);
+        var [view, setView] = useState("overview");
+        var [preflight, setPreflight] = useState(null);
+        var [preflightBusy, setPreflightBusy] = useState(false);
 
         var sinceRef = useRef(0);
         var startedRef = useRef(null);
@@ -596,6 +711,15 @@ window.__ModuleLoader__.load({
           rpc("report", { runId: run.runId, project: project, title: "采集 " + run.runId }).then(function (res) {
             setRunBusy(false);
             if (res && res.ok && res.value) setReportPath(res.value.path || "");
+          });
+        }
+
+        function runPreflightCheck() {
+          setPreflightBusy(true);
+          var bundleId = serverTarget ? serverTarget.bundleId : (pick ? pick.split("|")[1] : "");
+          rpc("preflight", { bundleId: bundleId }).then(function (res) {
+            setPreflightBusy(false);
+            if (res && res.ok && res.value) setPreflight(res.value);
           });
         }
 
@@ -712,6 +836,20 @@ window.__ModuleLoader__.load({
           };
         }, [visible]);
 
+        var verdict = null;
+        if (windowStats) {
+          var trend = windowStats.delta;
+          if (windowStats.current >= 400 * 1048576) {
+            verdict = { color: DANGER, value: fmtMB(windowStats.current), text: t("panel.verdict.high") };
+          } else if (windowStats.current >= 200 * 1048576) {
+            verdict = { color: WARN, value: fmtMB(windowStats.current), text: t("panel.verdict.watch") };
+          } else if (trend > 5 * 1048576) {
+            verdict = { color: WARN, value: fmtMB(windowStats.current), text: t("panel.verdict.rising") + " " + fmtMB(trend) };
+          } else {
+            verdict = { color: "#1f9d63", value: fmtMB(windowStats.current), text: t("panel.verdict.ok") };
+          }
+        }
+
         var pickedSample = useMemo(function () {
           if (pickedSeq === null) return visible.length ? visible[visible.length - 1] : null;
           for (var i = 0; i < samples.length; i++) {
@@ -783,6 +921,22 @@ window.__ModuleLoader__.load({
             e("span", { style: { flex: 1 } })
           ),
 
+          e("div", { style: { display: "flex", gap: 2, background: BG2, borderRadius: 8, padding: 2 } },
+            ["overview", "memory", "records"].map(function (key) {
+              var active = view === key;
+              return e("button", {
+                key: key,
+                onClick: function () { setView(key); },
+                style: {
+                  flex: 1, appearance: "none", border: 0, borderRadius: 6, padding: "4px 0",
+                  fontSize: 11, fontWeight: active ? 650 : 500, cursor: "pointer",
+                  background: active ? BG1 : "transparent", color: active ? FG : FG3,
+                  boxShadow: active ? "0 1px 2px rgba(0,0,0,.08)" : "none"
+                }
+              }, t("panel.view." + key));
+            })),
+
+          view === "memory" ? e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
           e("div", { style: { display: "flex", gap: 4 } },
             e("select", {
               value: pick,
@@ -879,6 +1033,9 @@ window.__ModuleLoader__.load({
               : null
           ),
 
+          e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.4 } },
+            dim === "category" ? t("panel.hint.category") : t("panel.hint.dim")),
+
           dim !== "category"
             ? e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.4 } },
               detailLoading
@@ -911,47 +1068,36 @@ window.__ModuleLoader__.load({
               }))
             : null,
 
-          e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
-            e("button", {
-              onClick: function () { setShowRuns(!showRuns); },
-              style: { appearance: "none", border: 0, background: "transparent", color: FG3, fontSize: 10, cursor: "pointer", padding: 0 }
-            }, (showRuns ? "▾ " : "▸ ") + t("panel.runs") + " (" + runs.length + ")"),
-            e("span", { style: { flex: 1 } }),
-            runBusy ? e("span", { style: { fontSize: 9, color: FG3 } }, t("panel.working")) : null,
-            e("button", {
-              onClick: exportRun,
-              disabled: runBusy,
-              style: { appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2, fontSize: 9, borderRadius: 6, padding: "1px 8px", cursor: "pointer" }
-            }, t("panel.export"))
-          ),
-
-          showRuns ? e("div", { style: { display: "flex", flexDirection: "column", gap: 2 } },
-            runs.length === 0
-              ? e("div", { style: { fontSize: 9, color: FG3, padding: "4px 0" } }, t("panel.runs.empty"))
-              : runs.slice(0, 8).map(function (run) {
-                return e("div", {
-                  key: run.runId,
-                  style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 4px", borderRadius: 6, background: BG2 }
-                },
-                  e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, shortClock(run.from)),
-                  e("span", { style: { fontSize: 9, color: FG2, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } },
-                    run.events + " 事件 · " + run.links + " 链接" + (run.hasReport ? " · 有报告" : "")),
-                  e("button", {
-                    onClick: function () { makeReport(run); },
-                    style: { appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2, fontSize: 9, borderRadius: 6, padding: "1px 6px", cursor: "pointer", flex: "0 0 auto" }
-                  }, t("panel.makeReport"))
-                );
-              })
-          ) : null,
-
-          reportPath
-            ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, reportPath)
-            : null,
-
           e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.5 } }, t("panel.footer.sim")),
 
           hover === null && samples.length > 0
             ? e("div", { style: { fontSize: 9, color: FG3 } }, t("panel.hover.none"))
+            : null
+          ) : null,
+
+          view === "overview"
+            ? e(OverviewView, {
+              t: t,
+              verdict: verdict,
+              preflight: preflight,
+              preflightBusy: preflightBusy,
+              onPreflight: runPreflightCheck,
+              runs: runs,
+              clock: shortClock,
+              onReport: makeReport,
+            })
+            : null,
+
+          view === "records"
+            ? e(RecordsView, {
+              t: t,
+              runs: runs,
+              clock: shortClock,
+              onReport: makeReport,
+              onExport: exportRun,
+              busy: runBusy,
+              reportPath: reportPath,
+            })
             : null
         );
       }

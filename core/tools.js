@@ -200,6 +200,20 @@ export const TOOL_SPECS = [
     },
   },
   {
+    name: 'ios_device_log',
+    description: '真机日志（xctrace Logging 模板，3–30 秒）：录一段系统日志，按消息子串过滤后返回时间/进程/级别/子系统。走网络连接也能用，不需要 USB。',
+    properties: {
+      bundleId: { type: 'string', description: 'App 的 bundle id（会以 --launch 方式启动它）' },
+      seconds: { type: 'number', description: '录制秒数，3–30，默认 8' },
+      grep: { type: 'string', description: '只保留消息包含这个子串的条目（大小写不敏感）' },
+      limit: { type: 'number', description: '最多返回多少条，默认 100' },
+      udid: { type: 'string', description: '真机 udid；不传则用第一台在线设备' },
+    },
+    async handler(sampler, args) {
+      return sampler.deviceLogs(args)
+    },
+  },
+  {
     name: 'ios_mem_launch',
     description: '在指定模拟器里启动一个 App（simctl launch），方便先起 App 再采样。',
     properties: {

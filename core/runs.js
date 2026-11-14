@@ -49,6 +49,12 @@ export async function listRuns({ base = RUNS_DIR, limit = 20 } = {}) {
     } catch {
       // 没有报告也正常：刚导出的 run 还没生成
     }
+    let mode = 'live'
+    try {
+      mode = JSON.parse(await readFile(join(dir, 'meta.json'), 'utf8')).mode || 'live'
+    } catch {
+      // 老 run 没有 meta
+    }
     runs.push({
       runId,
       dir,
@@ -57,6 +63,7 @@ export async function listRuns({ base = RUNS_DIR, limit = 20 } = {}) {
       from: events.length ? events[0].ts : null,
       to: events.length ? events[events.length - 1].ts : null,
       hasReport,
+      mode,
     })
   }
   return runs

@@ -2,6 +2,80 @@
 
   // ------------------------------------------------------------ 面板
 
+
+  var SMALL_BTN = {
+    appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2,
+    fontSize: 10, borderRadius: 7, padding: "3px 9px", cursor: "pointer"
+  };
+
+  var STATUS_COLOR = { pass: "#1f9d63", warn: "#c78500", fail: DANGER, unknown: FG3 };
+  var STATUS_ICON = { pass: "✓", warn: "!", fail: "✕", unknown: "?" };
+
+  function OverviewView(props) {
+    var t = props.t;
+    var pf = props.preflight;
+    return e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
+
+      props.verdict
+        ? e("div", { style: { background: BG2, borderRadius: 10, padding: "10px 12px", borderLeft: "3px solid " + props.verdict.color } },
+          e("div", { style: { fontSize: 20, fontWeight: 700, fontFamily: MONO, color: props.verdict.color, letterSpacing: "-0.02em" } }, props.verdict.value),
+          e("div", { style: { fontSize: 11, color: FG2, marginTop: 2 } }, props.verdict.text))
+        : e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.7, background: BG2, borderRadius: 10, padding: "10px 12px" } }, t("panel.overview.empty")),
+
+      e("div", { style: { border: "1px solid " + BORDER, borderRadius: 10, padding: "10px 12px", background: BG1 } },
+        e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+          e("span", { style: { fontSize: 12, fontWeight: 600 } }, t("panel.preflight.title")),
+          e("span", { style: { flex: 1 } }),
+          e("button", { onClick: props.onPreflight, disabled: props.preflightBusy, style: SMALL_BTN },
+            props.preflightBusy ? t("panel.preflight.running") : t("panel.preflight.run"))),
+        pf && pf.items
+          ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3, marginTop: 8 } },
+            pf.items.map(function (item) {
+              return e("div", { key: item.id, style: { display: "flex", gap: 6, alignItems: "baseline" } },
+                e("span", { style: { color: STATUS_COLOR[item.status] || FG3, fontSize: 11, width: 10, flex: "0 0 auto" } }, STATUS_ICON[item.status] || "?"),
+                e("span", { style: { fontSize: 11, color: FG, flex: "0 0 auto" } }, item.title),
+                e("span", { style: { fontSize: 10, color: FG3, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, item.detail));
+            }))
+          : e("div", { style: { fontSize: 10, color: FG3, marginTop: 6, lineHeight: 1.5 } }, t("panel.preflight.empty")),
+        pf && pf.dir
+          ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, marginTop: 6, wordBreak: "break-all" } }, pf.dir + "/report.md")
+          : null),
+
+      props.runs && props.runs.length
+        ? e("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
+          e("div", { style: { fontSize: 10, color: FG3 } }, t("panel.records.title")),
+          props.runs.slice(0, 3).map(function (run) {
+            return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 7, padding: "4px 7px" } },
+              e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3 } }, props.clock(run.from)),
+              e("span", { style: { fontSize: 10, color: FG2, flex: 1 } }, run.events + " " + t("panel.records.points")),
+              e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
+          }))
+        : null
+    );
+  }
+
+  function RecordsView(props) {
+    var t = props.t;
+    return e("div", { style: { display: "flex", flexDirection: "column", gap: 6 } },
+      e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+        e("span", { style: { fontSize: 12, fontWeight: 600 } }, t("panel.records.title")),
+        e("span", { style: { flex: 1 } }),
+        e("button", { onClick: props.onExport, disabled: props.busy, style: SMALL_BTN }, t("panel.export"))),
+      props.runs.length === 0
+        ? e("div", { style: { fontSize: 11, color: FG3, lineHeight: 1.6, padding: "8px 2px" } }, t("panel.records.empty"))
+        : props.runs.filter(function (run) { return run.events > 0; }).map(function (run) {
+          return e("div", { key: run.runId, style: { display: "flex", alignItems: "center", gap: 6, background: BG2, borderRadius: 8, padding: "5px 8px" } },
+            e("span", { style: { fontSize: 10, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, props.clock(run.from)),
+            e("span", { style: { fontSize: 11, color: FG, flex: "0 0 auto" } }, run.mode === "trace" ? "回放" : "采样"),
+            e("span", { style: { fontSize: 10, color: FG3, flex: 1 } }, run.events + " " + t("panel.records.points") + (run.hasReport ? " · 有报告" : "")),
+            e("button", { onClick: function () { props.onReport(run); }, style: SMALL_BTN }, t("panel.records.open")));
+        }),
+      props.reportPath
+        ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, props.reportPath)
+        : null
+    );
+  }
+
   function Panel(props) {
     var t = props.t || function (key) { return key; };
     var rpc = props.rpc || callRpc;
@@ -31,6 +105,9 @@
     var [showRuns, setShowRuns] = useState(true);
     var [reportPath, setReportPath] = useState("");
     var [runBusy, setRunBusy] = useState(false);
+    var [view, setView] = useState("overview");
+    var [preflight, setPreflight] = useState(null);
+    var [preflightBusy, setPreflightBusy] = useState(false);
 
     var sinceRef = useRef(0);
     var startedRef = useRef(null);
@@ -95,6 +172,15 @@
       rpc("report", { runId: run.runId, project: project, title: "采集 " + run.runId }).then(function (res) {
         setRunBusy(false);
         if (res && res.ok && res.value) setReportPath(res.value.path || "");
+      });
+    }
+
+    function runPreflightCheck() {
+      setPreflightBusy(true);
+      var bundleId = serverTarget ? serverTarget.bundleId : (pick ? pick.split("|")[1] : "");
+      rpc("preflight", { bundleId: bundleId }).then(function (res) {
+        setPreflightBusy(false);
+        if (res && res.ok && res.value) setPreflight(res.value);
       });
     }
 
@@ -211,6 +297,20 @@
       };
     }, [visible]);
 
+    var verdict = null;
+    if (windowStats) {
+      var trend = windowStats.delta;
+      if (windowStats.current >= 400 * 1048576) {
+        verdict = { color: DANGER, value: fmtMB(windowStats.current), text: t("panel.verdict.high") };
+      } else if (windowStats.current >= 200 * 1048576) {
+        verdict = { color: WARN, value: fmtMB(windowStats.current), text: t("panel.verdict.watch") };
+      } else if (trend > 5 * 1048576) {
+        verdict = { color: WARN, value: fmtMB(windowStats.current), text: t("panel.verdict.rising") + " " + fmtMB(trend) };
+      } else {
+        verdict = { color: "#1f9d63", value: fmtMB(windowStats.current), text: t("panel.verdict.ok") };
+      }
+    }
+
     var pickedSample = useMemo(function () {
       if (pickedSeq === null) return visible.length ? visible[visible.length - 1] : null;
       for (var i = 0; i < samples.length; i++) {
@@ -282,6 +382,22 @@
         e("span", { style: { flex: 1 } })
       ),
 
+      e("div", { style: { display: "flex", gap: 2, background: BG2, borderRadius: 8, padding: 2 } },
+        ["overview", "memory", "records"].map(function (key) {
+          var active = view === key;
+          return e("button", {
+            key: key,
+            onClick: function () { setView(key); },
+            style: {
+              flex: 1, appearance: "none", border: 0, borderRadius: 6, padding: "4px 0",
+              fontSize: 11, fontWeight: active ? 650 : 500, cursor: "pointer",
+              background: active ? BG1 : "transparent", color: active ? FG : FG3,
+              boxShadow: active ? "0 1px 2px rgba(0,0,0,.08)" : "none"
+            }
+          }, t("panel.view." + key));
+        })),
+
+      view === "memory" ? e("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
       e("div", { style: { display: "flex", gap: 4 } },
         e("select", {
           value: pick,
@@ -378,6 +494,9 @@
           : null
       ),
 
+      e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.4 } },
+        dim === "category" ? t("panel.hint.category") : t("panel.hint.dim")),
+
       dim !== "category"
         ? e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.4 } },
           detailLoading
@@ -410,47 +529,36 @@
           }))
         : null,
 
-      e("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
-        e("button", {
-          onClick: function () { setShowRuns(!showRuns); },
-          style: { appearance: "none", border: 0, background: "transparent", color: FG3, fontSize: 10, cursor: "pointer", padding: 0 }
-        }, (showRuns ? "▾ " : "▸ ") + t("panel.runs") + " (" + runs.length + ")"),
-        e("span", { style: { flex: 1 } }),
-        runBusy ? e("span", { style: { fontSize: 9, color: FG3 } }, t("panel.working")) : null,
-        e("button", {
-          onClick: exportRun,
-          disabled: runBusy,
-          style: { appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2, fontSize: 9, borderRadius: 6, padding: "1px 8px", cursor: "pointer" }
-        }, t("panel.export"))
-      ),
-
-      showRuns ? e("div", { style: { display: "flex", flexDirection: "column", gap: 2 } },
-        runs.length === 0
-          ? e("div", { style: { fontSize: 9, color: FG3, padding: "4px 0" } }, t("panel.runs.empty"))
-          : runs.slice(0, 8).map(function (run) {
-            return e("div", {
-              key: run.runId,
-              style: { display: "flex", alignItems: "center", gap: 6, padding: "3px 4px", borderRadius: 6, background: BG2 }
-            },
-              e("span", { style: { fontSize: 9, fontFamily: MONO, color: FG3, flex: "0 0 auto" } }, shortClock(run.from)),
-              e("span", { style: { fontSize: 9, color: FG2, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } },
-                run.events + " 事件 · " + run.links + " 链接" + (run.hasReport ? " · 有报告" : "")),
-              e("button", {
-                onClick: function () { makeReport(run); },
-                style: { appearance: "none", border: "1px solid " + BORDER, background: BG1, color: FG2, fontSize: 9, borderRadius: 6, padding: "1px 6px", cursor: "pointer", flex: "0 0 auto" }
-              }, t("panel.makeReport"))
-            );
-          })
-      ) : null,
-
-      reportPath
-        ? e("div", { style: { fontSize: 8, fontFamily: MONO, color: FG3, wordBreak: "break-all", lineHeight: 1.4 } }, reportPath)
-        : null,
-
       e("div", { style: { fontSize: 9, color: FG3, lineHeight: 1.5 } }, t("panel.footer.sim")),
 
       hover === null && samples.length > 0
         ? e("div", { style: { fontSize: 9, color: FG3 } }, t("panel.hover.none"))
+        : null
+      ) : null,
+
+      view === "overview"
+        ? e(OverviewView, {
+          t: t,
+          verdict: verdict,
+          preflight: preflight,
+          preflightBusy: preflightBusy,
+          onPreflight: runPreflightCheck,
+          runs: runs,
+          clock: shortClock,
+          onReport: makeReport,
+        })
+        : null,
+
+      view === "records"
+        ? e(RecordsView, {
+          t: t,
+          runs: runs,
+          clock: shortClock,
+          onReport: makeReport,
+          onExport: exportRun,
+          busy: runBusy,
+          reportPath: reportPath,
+        })
         : null
     );
   }

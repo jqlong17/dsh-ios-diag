@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<trace-query-result>
+<node xpath='x'><schema name="os-log">
+<col><mnemonic>time</mnemonic></col><col><mnemonic>thread</mnemonic></col><col><mnemonic>process</mnemonic></col><col><mnemonic>message-type</mnemonic></col><col><mnemonic>format-string</mnemonic></col><col><mnemonic>backtrace</mnemonic></col><col><mnemonic>subsystem</mnemonic></col><col><mnemonic>category</mnemonic></col><col><mnemonic>message</mnemonic></col><col><mnemonic>emit-location</mnemonic></col>
+</schema>
+<row><event-time id="1">1000000000</event-time><thread id="2"><tid id="3">1</tid><process id="4" fmt="DSH Pocket (42)"/></thread><process ref="4"/><event-type id="5" fmt="Default">Default</event-type><format-string id="6" fmt="send %{public}s">send</format-string><sentinel/><subsystem id="7" fmt="com.ruska.dsh">com.ruska.dsh</subsystem><category id="8" fmt="rpc">rpc</category><os-log-metadata id="9" fmt="send session/page ok"><narrative-text id="10">send session/page ok</narrative-text></os-log-metadata><return-location ref="11"/></row>
+<row><event-time id="20">2000000000</event-time><thread ref="2"/><process ref="4"/><event-type id="21" fmt="Error">Error</event-type><format-string id="22" fmt="request %{public}s">request</format-string><sentinel/><subsystem ref="7"/><category id="23" fmt="net">net</category><os-log-metadata id="24" fmt="request timeout after 20s"><narrative-text id="25">request timeout after 20s</narrative-text></os-log-metadata><return-location ref="11"/></row>
+</node>
+</trace-query-result>
